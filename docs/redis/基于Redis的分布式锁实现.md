@@ -8,7 +8,7 @@
 
 #### 2.代码结构：
 
-[iShot2021-12-12 15.53.04](https://gitee.com/ZeroClian/my-picture/raw/master/img/iShot2021-12-12%2015.53.04.png)
+![iShot2021-12-12 15.53.04](https://gitee.com/ZeroClian/my-picture/raw/master/img/iShot2021-12-12%2015.53.04.png)
 
 3. 准备工作（百度一堆）：
 
