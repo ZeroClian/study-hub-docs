@@ -1,8 +1,8 @@
 ![logo](/images/logo.png)
 
 # Study-Hub
-
-> StudyHub 学习教程，架构、业务、技术要点全方位解析。
+### 技术改变生活
+Java|生活|博客 
 
 StudyHub 是一个基于微服务的实践系统，采用主流的技术栈.....
 

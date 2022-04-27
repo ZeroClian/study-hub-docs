@@ -1,9 +1,8 @@
-* 演示
-  * [后台管理]()
-  * [小程序端]()
+* 博客
+  * [CSDN](https://blog.csdn.net/weixin_45636641)
+  * [Github](https://github.com/ZeroClian)
 
-* 项目地址
-  * [后台平台]()
-  * [后台管理]()
-  * [学习教程]()
+* 资料
+  * [项目地址](https://github.com/ZeroClian/study-hub-docs)
+  * [公众号]()
 

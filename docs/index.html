@@ -1,15 +1,166 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
-  <title>Document</title>
+  <title>Study-Hub</title>
   <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
   <meta name="description" content="Description">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+  <meta name="viewport"
+    content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
   <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/docsify@4/lib/themes/vue.css">
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/docsify-dark-mode@0.6.1/dist/style.css" />
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/docsify-sidebar-collapse/dist/sidebar.min.css" />
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/docsify-sidebar-collapse/dist/sidebar-folder.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6/css/all.min.css">
+  <!-- 自定义特色样式：by myself -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/wugenqiang/NoteBook@master/plugin/css/me.css">
+  <!-- alert 样式 -->
+  <link rel="stylesheet" href="https://cdn.bootcss.com/sweetalert/1.1.3/sweetalert.min.css" type='text/css'
+    media='all' />
+  <!-- 复制提醒 -->
+  <script src="https://cdn.bootcss.com/sweetalert/1.1.3/sweetalert.min.js"></script>
+  <style>
+    /*加重描述strong*/
+    .markdown-section strong {
+      color: rgb(239, 112, 96);
+    }
+
+
+    h2 span {
+      display: inline-block;
+      background: rgb(66, 185, 131);
+      color: #ffffff;
+      padding: 10px 16px;
+      border-radius: 5px;
+      box-shadow: 1px 1px 3px black;
+    }
+
+    ol,
+    ul,
+    li {
+      line-height: 27px !important;
+      font-size: 16px !important;
+    }
+
+    section.cover h1 {
+      margin: 0;
+    }
+
+    @media (max-width:600px) {
+      pre {
+        padding-left: 3px !important;
+        padding-right: 3px !important;
+        margin-left: -20px !important;
+        margin-right: -20px !important;
+        box-shadow: 0px 0px 20px 0px #f7f7f7 !important;
+      }
+
+      /*代码块复制按钮默认隐藏*/
+      .docsify-copy-code-button {
+        display: none;
+      }
+
+      .advertisement {
+        display: none;
+      }
+
+    }
+
+    .markdown-section pre {
+      padding-left: 0 !important;
+      padding-right: 0px !important;
+    }
+
+    .markdown-section {
+      margin: 0 3.2% !important;
+    }
+
+    a.section-link {
+      font-size: .9rem !important;
+    }
+
+    .advertisement {
+      position: fixed;
+      right: 20px;
+      top: 200px;
+      width: 150px;
+      box-shadow: -1px 0 2px 0px #c5ebda;
+      padding: 10px;
+      z-index: 99;
+      background-color: #fff;
+      text-align: center;
+    }
+
+    .advertisement p,
+    h4 {
+      margin: 0;
+      padding: 0;
+    }
+
+    .advertisement .tencent_qrcode h4 {
+      font-size: 15px;
+      color: #25a46a;
+      margin-bottom: 10px;
+    }
+
+    .wechat .wechat_qrcode h4 {
+      font-size: 15px;
+      color: #25a46a;
+      margin-bottom: 10px;
+    }
+
+    .wechat {
+      position: fixed;
+      right: 20px;
+      top: 390px;
+      width: 150px;
+      box-shadow: -1px 0 2px 0px #c5ebda;
+      padding: 10px;
+      z-index: 99;
+      background-color: #fff;
+      text-align: center;
+    }
+
+    /*滚动条样式 start*/
+    /* 滚动条宽度 */
+    ::-webkit-scrollbar {
+      width: 5px;
+    }
+
+    /* 滚动条颜色 */
+    ::-webkit-scrollbar-thumb {
+      background: #33a9dc;
+      background-image: linear-gradient(#6ecd56, #33a9dc, #cb6196, #c16290);
+      border-radius: 2em;
+    }
+
+    ::-webkit-scrollbar {
+      width: 10px;
+    }
+  </style>
 </head>
+
 <body>
-  <div id="app"></div>
+  <div id="app">🏃‍🏃‍🏃‍💨 加载中...</div>
+  <div class="aside_container">
+    <div class="advertisement">
+      <div class="tencent_qrcode">
+        <h4>关注我</h4>
+        <p style="font-size: 12px; color: #25a46a;">公众号</p>
+        <img src="/images/logo.png" alt="EnjoyToShare" />
+      </div>
+    </div>
+  </div>
+  <div class="aside_container2">
+    <div class="wechat">
+      <div class="wechat_qrcode">
+        <h4>加我好友</h4>
+        <img src="/images/logo.png" alt="EnjoyToShare" />
+      </div>
+    </div>
+  </div>
+  <div id="gitalk-container"></div>
   <script>
     window.$docsify = {
       name: 'Study-Hub',
@@ -23,27 +174,151 @@
       alias: { // 定义路由别名，可以更自由的定义路由规则。 支持正则
         '/.*/_sidebar.md': '/_sidebar.md',//防止意外回退
         '/.*/_navbar.md': '/_navbar.md'
-      }
+      },
+      //分页
+      pagination: {
+        previousText: '上一章节',
+        nextText: '下一章节',
+        crossChapter: true,
+        crossChapterText: true,
+      },
+      //全局搜索
       // search: {
       //   paths: auto,
       //   placeholder: '搜索',
       //   noData: '找不到结果',
-      //   depth: 6
+      //   depth: 3
       // }
+      plugins: [
+        function (hook) {
+          var header = [
+            '<p>',
+            // '<a href="https://www.aliyun.com/sale-season/2020/procurement-new-members?userCode=thp9caen">',
+            //'<img src="https://img-blog.csdnimg.cn/20210719222911357.png" alt="公众号" width="430px" height="136px" style="margin-top:-70px">',
+            //'<img src="https://img-blog.csdnimg.cn/2021071922263371.png" alt="知识星球" width="327px" height="145px" style="margin-top:-70px">',
+            //'<br/>',
+            '<span><a href="http://www.passjava.cn/" target="_blank">从零学架构认准： 悟空聊架构 www.passjava.cn</a></span>',
+            '</p>'
+          ].join('');
+          var footer = [
+            '<hr/>',
+            '<footer style="text-align: center">',
+            '<p>',
+            // '<a href="https://www.aliyun.com/sale-season/2020/procurement-new-members?userCode=thp9caen">',
+            //'<img src="http://cdn.jayh.club/blog/20200910/8cQn6wSJtQND.png?imageslim" alt="公众号" width="557px" height="294px">',
+            '<img src="https://img-blog.csdnimg.cn/20210522084205664.png" alt="公众号" width="557px" height="294px">',
+            '<img src="https://oscimg.oschina.net/oscnet/up-a2f2ba3e2ec0d84f7b895c5476d98f202dc.png" alt="微信" width="557px" height="294px">',
+            '</p>',
+            '<p id="sitetime"></p>',
+            '<span><a href="https://beian.miit.gov.cn/" target="_blank">鄂ICP备19010052号-2</a></span>',
+            '</footer>'
+          ].join('');
+          hook.afterEach(function (html) {
+            var isReadme = window.location.href.indexOf("README");
+            if (isReadme === -1) {
+              return header + html + footer;
+            } else {
+              return html + footer;
+            }
+          });
+        }
+      ]
+
     }
+  </script>
+
+  <script>
+    document.body.oncopy = function () {
+      swal("复制成功 🎉",
+        "若要转载或引用请务必保留原文链接，并申明来源。如果你觉得本仓库不错，那就来 GitHub 给个 Star 吧 😊   - by ZeroClian。如果复制失败，请切换 chrome 浏览器",
+        "success");
+    };
+  </script>
+  <!-- 运行时间统计 -->
+  <script language=javascript>
+    function siteTime() {
+      window.setTimeout("siteTime()", 1000);
+      var seconds = 1000;
+      var minutes = seconds * 60;
+      var hours = minutes * 60;
+      var days = hours * 24;
+      var years = days * 365;
+      var today = new Date();
+      var todayYear = today.getFullYear();
+      var todayMonth = today.getMonth() + 1;
+      var todayDate = today.getDate();
+      var todayHour = today.getHours();
+      var todayMinute = today.getMinutes();
+      var todaySecond = today.getSeconds();
+      /* Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+      year - 作为date对象的年份，为4位年份值
+      month - 0-11之间的整数，做为date对象的月份
+      day - 1-31之间的整数，做为date对象的天数
+      hours - 0(午夜24点)-23之间的整数，做为date对象的小时数
+      minutes - 0-59之间的整数，做为date对象的分钟数
+      seconds - 0-59之间的整数，做为date对象的秒数
+      microseconds - 0-999之间的整数，做为date对象的毫秒数 */
+      var t1 = Date.UTC(2022, 04, 27, 00, 00, 00); //北京时间2020-02-10 00:00:00
+      var t2 = Date.UTC(todayYear, todayMonth, todayDate, todayHour, todayMinute, todaySecond);
+      var diff = t2 - t1;
+      var diffYears = Math.floor(diff / years);
+      var diffDays = Math.floor((diff / days) - diffYears * 365);
+      var diffHours = Math.floor((diff - (diffYears * 365 + diffDays) * days) / hours);
+      var diffMinutes = Math.floor((diff - (diffYears * 365 + diffDays) * days - diffHours * hours) / minutes);
+      var diffSeconds = Math.floor((diff - (diffYears * 365 + diffDays) * days - diffHours * hours - diffMinutes * minutes) / seconds);
+      document.getElementById("sitetime").innerHTML = " 本网站已运行 " + diffYears + " 年 " + diffDays + " 天 " + diffHours + " 小时 " + diffMinutes + " 分钟 " + diffSeconds + " 秒 ";
+    }
+    siteTime();
   </script>
   <!-- Docsify v4 -->
   <script src="//cdn.jsdelivr.net/npm/docsify@4"></script>
   <script src="//unpkg.com/prismjs/components/prism-bash.js"></script>
   <script src="//unpkg.com/prismjs/components/prism-java.js"></script>
   <script src="//unpkg.com/prismjs/components/prism-sql.js"></script>
+  <!--代码复制-->
   <script src="//unpkg.com/docsify-copy-code"></script>
   <script src="//cdn.jsdelivr.net/npm/docsify/lib/plugins/emoji.min.js"></script>
+  <!--图片缩放-->
   <script src="//cdn.jsdelivr.net/npm/docsify/lib/plugins/zoom-image.min.js"></script>
-  <!-- <script src="//cdn.jsdelivr.net/npm/docsify/lib/docsify.min.js"></script>
-  <script src="//cdn.jsdelivr.net/npm/docsify/lib/plugins/search.min.js"></script> -->
+  <!-- <script src="//cdn.jsdelivr.net/npm/docsify/lib/docsify.min.js"></script>-->
+  <!--搜索-->
+  <!-- <script src="//cdn.jsdelivr.net/npm/docsify/lib/plugins/search.min.js"></script>  -->
   <script src="//cdn.jsdelivr.net/npm/docsify-pagination/dist/docsify-pagination.min.js"></script>
   <script src="//cdn.jsdelivr.net/npm/docsify/lib/plugins/external-script.min.js"></script>
 
+  <!-- 左下角看板娘动漫 -->
+  <script src="https://eqcn.ajz.miesnfu.com/wp-content/plugins/wp-3d-pony/live2dw/lib/L2Dwidget.min.js"></script>
+  <!-- <script src="https://cdn.jsdelivr.net/gh/stevenjoezhang/live2d-widget@latest/autoload.js"></script> -->
+
+  <script>
+    L2Dwidget.init({
+      "model": {
+        //jsonpath控制显示那个小萝莉模型，
+        //(切换模型需要改动)
+        jsonPath: "https://unpkg.com/live2d-widget-model-shizuku@1.0.5/assets/shizuku.model.json",
+        "scale": 2
+      },
+      "display": {
+        "position": "right", //看板娘的表现位置
+        "width": 70,  //小萝莉的宽度
+        "height": 140, //小萝莉的高度
+        "hOffset": 35,
+        "vOffset": -20
+      },
+      "mobile": {
+        "show": false,
+        "scale": 1
+      },
+      "react": {
+        "opacityDefault": 0.7,
+        "opacityOnHover": 0.2
+      }
+    });
+  </script>
+
+  <!-- 右下角看板娘 -->
+  <!-- <script src="http://cdn.jayh.club/js/autoload1.0.js"></script> -->
+
 </body>
+
 </html>

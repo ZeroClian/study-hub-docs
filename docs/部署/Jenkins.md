@@ -16,7 +16,7 @@ docker ps | grep jenkins
 ```bash
 docker logs jenkins
 ```
-![image.png](https://cdn.nlark.com/yuque/0/2022/png/2577724/1645775817494-b147643c-e12e-485a-93e8-13a9fe71858e.png#clientId=uf6379746-0023-4&crop=0&crop=0&crop=1&crop=1&from=paste&height=106&id=uede1b2de&margin=%5Bobject%20Object%5D&name=image.png&originHeight=132&originWidth=753&originalType=binary&ratio=1&rotation=0&showTitle=false&size=19715&status=done&style=none&taskId=ue0b1bb28-f97a-4487-a04d-34405530889&title=&width=602.4)
+![image.png](https://cdn.nlark.com/yuque/0/2022/png/2577724/1645775817494-b147643c-e12e-485a-93e8-13a9fe71858e.png)
 访问 Jenkins ：http://ip:端口号
 > 阿里云要开放8081端口
 
