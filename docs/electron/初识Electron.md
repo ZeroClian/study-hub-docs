@@ -32,3 +32,13 @@ odemon --watch main.js --exec \"electron .\"
 > npm config set ELECTRON_MIRROR https://npm.taobao.org/mirrors/electron/
 > ```
 
+- react
+```bash
+npx create-react-app xxx
+```
+
+- axios
+```bash
+npm install axios --save
+```
+
