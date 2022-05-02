@@ -7,12 +7,15 @@
 
 * <font style="color:orange;font-size:16px;font-weight:500">Docker</font>
   * [Docker详解](/docker/Docker详解.md)
-
+  * [nginx](/docker/nginx.md)
+  
 * <font style="color:orange;font-size:16px;font-weight:500">redis</font>
   * [基于Redis的分布式锁实现](/redis/基于Redis的分布式锁实现.md)
 
 * <font style="color:orange;font-size:16px;font-weight:500">electron</font>
   * [初识Electron](/electron/初识Electron.md)
+  * [开发](/electron/开发.md)
+  * [项目起步](/electron/项目起步.md)
 
 - <font style="color:orange;font-size:16px;font-weight:500">部署</font>
   - [Jenkins](/部署/Jenkins.md)
