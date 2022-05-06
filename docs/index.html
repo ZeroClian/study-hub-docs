@@ -31,14 +31,11 @@
       display: inline-block;
       background: rgb(66, 185, 131);
       color: #ffffff;
-      padding: 10px 16px;
+      padding: 2px 10px;
       border-radius: 5px;
       box-shadow: 1px 1px 3px black;
     }
-
-    ol,
-    ul,
-    li {
+    ol, ul, li{
       line-height: 27px !important;
       font-size: 16px !important;
     }
@@ -92,35 +89,6 @@
       text-align: center;
     }
 
-    .advertisement p,
-    h4 {
-      margin: 0;
-      padding: 0;
-    }
-
-    .advertisement .tencent_qrcode h4 {
-      font-size: 15px;
-      color: #25a46a;
-      margin-bottom: 10px;
-    }
-
-    .wechat .wechat_qrcode h4 {
-      font-size: 15px;
-      color: #25a46a;
-      margin-bottom: 10px;
-    }
-
-    .wechat {
-      position: fixed;
-      right: 20px;
-      top: 390px;
-      width: 150px;
-      box-shadow: -1px 0 2px 0px #c5ebda;
-      padding: 10px;
-      z-index: 99;
-      background-color: #fff;
-      text-align: center;
-    }
 
     /*滚动条样式 start*/
     /* 滚动条宽度 */
@@ -132,35 +100,17 @@
     ::-webkit-scrollbar-thumb {
       background: #33a9dc;
       background-image: linear-gradient(#6ecd56, #33a9dc, #cb6196, #c16290);
-      border-radius: 2em;
+      border-radius: 1em;
     }
 
     ::-webkit-scrollbar {
-      width: 10px;
+      width: 8px;
     }
   </style>
 </head>
 
 <body>
   <div id="app">🏃‍🏃‍🏃‍💨 加载中...</div>
-  <!-- <div class="aside_container">
-    <div class="advertisement">
-      <div class="tencent_qrcode">
-        <h4>关注我</h4>
-        <p style="font-size: 12px; color: #25a46a;">公众号</p>
-        <img src="/images/logo.png" alt="EnjoyToShare" />
-      </div>
-    </div>
-  </div>
-  <div class="aside_container2">
-    <div class="wechat">
-      <div class="wechat_qrcode">
-        <h4>加我好友</h4>
-        <img src="/images/logo.png" alt="EnjoyToShare" />
-      </div>
-    </div>
-  </div>
-  <div id="gitalk-container"></div> -->
   <script>
     window.$docsify = {
       name: 'Study-Hub',
@@ -168,9 +118,17 @@
       loadNavbar: true,
       loadSidebar: true, // 加载自定义侧边栏
       maxLevel: 2, // 默认情况下会抓取文档中所有标题渲染成目录，可配置最大支持渲染的标题层级。
-      subMaxLevel: 3, // 生成目录的最大层级
+      subMaxLevel: 4, // 生成目录的最大层级
       mergeNavbar: true, // 小屏设备下合并导航栏到侧边栏
       coverpage: true,
+      auto2top: true,
+      //全局搜索
+      // search: {
+      //   paths: auto,
+      //   placeholder: '搜索',
+      //   noData: '找不到结果',
+      //   depth: 3
+      // }
       alias: { // 定义路由别名，可以更自由的定义路由规则。 支持正则
         '/.*/_sidebar.md': '/_sidebar.md',//防止意外回退
         '/.*/_navbar.md': '/_navbar.md'
@@ -187,13 +145,6 @@
           toggleBtnBg: '#42b983'
         }
       },
-      //全局搜索
-      // search: {
-      //   paths: auto,
-      //   placeholder: '搜索',
-      //   noData: '找不到结果',
-      //   depth: 3
-      // }
       plugins: [
         function (hook) {
           var header = [
@@ -280,17 +231,28 @@
   <script src="//unpkg.com/prismjs/components/prism-bash.js"></script>
   <script src="//unpkg.com/prismjs/components/prism-java.js"></script>
   <script src="//unpkg.com/prismjs/components/prism-sql.js"></script>
+  <!-- mouse click -->
+  <script src="//cdn.jsdelivr.net/gh/jerryc127/butterfly_cdn@2.1.0/js/click_heart.js"></script>
+  <!-- 美化提示样式 -->
+  <script src="https://unpkg.com/docsify-plugin-flexible-alerts"></script>
   <!-- 黑夜模式 -->
   <script src="//cdn.jsdelivr.net/npm/docsify-dark-mode@0.6.1/dist/index.js"></script>
-  <!--代码复制-->
+  <!-- 代码复制 -->
   <script src="//unpkg.com/docsify-copy-code"></script>
+  <!-- 表情 -->
   <script src="//cdn.jsdelivr.net/npm/docsify/lib/plugins/emoji.min.js"></script>
-  <!--图片缩放-->
+  <!-- 图片缩放 -->
   <script src="//cdn.jsdelivr.net/npm/docsify/lib/plugins/zoom-image.min.js"></script>
   <!-- <script src="//cdn.jsdelivr.net/npm/docsify/lib/docsify.min.js"></script>-->
-  <!--搜索-->
-  <!-- <script src="//cdn.jsdelivr.net/npm/docsify/lib/plugins/search.min.js"></script>  -->
+  <!-- 搜索 -->
+  <script src="//cdn.jsdelivr.net/npm/docsify/lib/plugins/search.min.js"></script>
+  <!-- 分页 -->
   <script src="//cdn.jsdelivr.net/npm/docsify-pagination/dist/docsify-pagination.min.js"></script>
+  <!-- 侧边栏 -->
+  <script src="//cdn.jsdelivr.net/npm/docsify-sidebar-collapse/dist/docsify-sidebar-collapse.min.js"></script>
+  <!-- mouse click -->
+  <script src="//cdn.jsdelivr.net/gh/jerryc127/butterfly_cdn@2.1.0/js/click_heart.js"></script>
+
   <script src="//cdn.jsdelivr.net/npm/docsify/lib/plugins/external-script.min.js"></script>
 
   <!-- 左下角看板娘动漫 -->
