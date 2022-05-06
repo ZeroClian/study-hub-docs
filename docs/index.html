@@ -177,10 +177,15 @@
       },
       //分页
       pagination: {
-        previousText: '上一章节',
-        nextText: '下一章节',
+        previousText: '上一篇',
+        nextText: '下一篇',
         crossChapter: true,
         crossChapterText: true,
+      },
+      darkMode: {
+        light: {
+          toggleBtnBg: '#42b983'
+        }
       },
       //全局搜索
       // search: {
@@ -275,6 +280,8 @@
   <script src="//unpkg.com/prismjs/components/prism-bash.js"></script>
   <script src="//unpkg.com/prismjs/components/prism-java.js"></script>
   <script src="//unpkg.com/prismjs/components/prism-sql.js"></script>
+  <!-- 黑夜模式 -->
+  <script src="//cdn.jsdelivr.net/npm/docsify-dark-mode@0.6.1/dist/index.js"></script>
   <!--代码复制-->
   <script src="//unpkg.com/docsify-copy-code"></script>
   <script src="//cdn.jsdelivr.net/npm/docsify/lib/plugins/emoji.min.js"></script>
