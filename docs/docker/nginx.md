@@ -1,3 +1,32 @@
+# 卸载
+1. 检查是否运行
+
+```bash
+ps -ef | grep nginx
+```
+2. 停止运行
+
+```bash
+#查找文件
+find / -name nginx
+#停止
+/usr/local/nginx/sbin/nginx -s stop
+```
+3. 卸载
+```bash
+rm -rf xxx(查找与出来的与nginx相关的文件)
+```
+- 如果设置了开机自启，需要执行以下命令
+```bash
+chkconfig nginx off
+rm -rf /etc/init.d/nginx
+```
+- yum 指令清理
+
+```bash
+yum remove nginx
+```
+
 # shell脚本
 
 ```shell
