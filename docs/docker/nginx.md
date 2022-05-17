@@ -27,6 +27,39 @@ rm -rf /etc/init.d/nginx
 yum remove nginx
 ```
 
+# 安装
+1. 解压安装包
+
+```bash
+tar zxvf nginx-1.20.2.tar.gz
+```
+2. 安装相关依赖
+
+```
+yum install -y gcc
+yum install -y pcre pcre-devel
+yum install -y zlib zlib-devel
+```
+3. 编译安装
+```
+./configure --prefix=/usr/local/nginx 
+make 
+make install
+```
+4. 启动
+
+```
+cd /usr/local/nginx/sbin
+./nginx
+```
+5. 访问服务器ip地址出现
+
+
+
+
+
+
+
 # shell脚本
 
 ```shell
