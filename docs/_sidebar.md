@@ -9,6 +9,7 @@
   * [Docker详解](/docker/Docker详解.md)
   * [Docker—安装配置](/docker/Docker—安装配置.md)
   * [nginx](/docker/nginx.md)
+  * [node](/docker/node.md)
   
 * <font style="color:orange;font-size:16px;font-weight:500">redis</font>
   * [基于Redis的分布式锁实现](/redis/基于Redis的分布式锁实现.md)

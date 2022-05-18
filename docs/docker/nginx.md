@@ -55,7 +55,17 @@ cd /usr/local/nginx/sbin
 5. 访问服务器ip地址出现
 
 
-
+# 常用命令
+```bash
+1、启动nginx
+  ./nginx
+2、关闭nginx
+  ./nginx -s stop
+3、重新加载nginx (nginx.conf)
+  ./nginx -s reload
+4、查看版本号
+  ./nginx -v
+```
 
 
 
