@@ -1,7 +1,7 @@
 
--  <font style="color:orange;font-size:16px;font-weight:500">Java</font>
-  - [ArrayList源码分析](/java/ArrayList源码分析.md)
-  - [@Transactional](java/@Transactional.md)
+*  <font style="color:orange;font-size:16px;font-weight:500">Java</font>
+  * [ArrayList源码分析](/java/ArrayList源码分析.md)
+  * [@Transactional](java/@Transactional.md)
 
 * <font style="color:orange;font-size:16px;font-weight:500">wechat</font>
   * [公众号扫码登陆实现](/wechat/公众号扫码登陆实现.md)
@@ -22,6 +22,7 @@
 
 - <font style="color:orange;font-size:16px;font-weight:500">部署</font>
   - [Jenkins](/部署/Jenkins.md)
+  - [图床](/部署/图床.md)
 
 - <font style="color:orange;font-size:16px;font-weight:500">命令</font>
   - [MarkDown语法](/命令/MarkDown语法.md)
