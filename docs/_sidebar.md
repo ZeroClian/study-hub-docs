@@ -5,6 +5,8 @@
 
 * <font style="color:orange;font-size:16px;font-weight:500">wechat</font>
   * [公众号扫码登陆实现](/wechat/公众号扫码登陆实现.md)
+  * [股票日记](/wechat/股票日记.md)
+  * [ETF日记](/wechat/ETF日记.md)
 
 * <font style="color:orange;font-size:16px;font-weight:500">Docker</font>
   * [Docker详解](/docker/Docker详解.md)
