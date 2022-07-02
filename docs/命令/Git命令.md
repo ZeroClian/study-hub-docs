@@ -25,3 +25,11 @@ git remote -v
 git remote set-url origin https://xxx.git
 ```
 > 同样可以将https方式设置为ssh方式
+
+## Mac 配置SSH 后 仍需要输入密码解决办法
+
+原因:可能是未将 `~/.ssh/id_rsa`添加至钥匙串的管理
+
+```bash
+ ssh-add -K ~/.ssh/id_rsa
+```
