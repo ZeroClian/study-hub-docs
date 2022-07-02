@@ -100,3 +100,10 @@ Map<Boolean, Set<Order>> collect = orders.stream().collect(Collectors.partitioni
 ```java
 String collect = orders.stream().map(Order::getOrderNo).collect(Collectors.joining("，"));
 ```
+
+### sorted
+```java
+orders.stream().sorted(Comparator.comparing(Order::getName, (x, y) -> {
+                Collator clt = Collator.getInstance(java.util.Locale.CHINA);
+                return clt.compare(x, y);
+```
