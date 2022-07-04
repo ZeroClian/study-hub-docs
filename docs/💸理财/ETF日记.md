@@ -6,6 +6,9 @@
 
 ## 2022-07
 <font style="color:orange;font-size:16px;font-weight:500">2022-07-01</font>
-卖出 新能车ETF（515700） 3.120 100 <font style='color:red'>收益：7</font><br>
+卖出 新能车ETF（515700） 3.120 100 <font style='color:red'>收益：6.95</font><br>
 <font style="color:orange;font-size:16px;font-weight:500">2022-07-01</font>
-卖出 光伏ETF（159857） 1.422 100 <font style='color:red'>收益：11.3</font><br>
+卖出 光伏ETF（159857） 1.422 100 <font style='color:red'>收益：4.28</font><br>
+
+<font style="color:orange;font-size:18px;font-weight:600">累计收益：</font>
+<font style='color:red'>11.23</font><br>
