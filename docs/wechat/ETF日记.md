@@ -6,4 +6,4 @@
 
 ## 2022-07
 <font style="color:orange;font-size:16px;font-weight:500">2022-07-01</font>
-买入 新能车ETF（515700） 3.120 100 <font style='color:red'>收益：7</font><br>
+卖出 新能车ETF（515700） 3.120 100 <font style='color:red'>收益：7</font><br>
