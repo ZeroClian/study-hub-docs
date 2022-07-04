@@ -3,11 +3,6 @@
   * [ArrayList源码分析](/java/ArrayList源码分析.md)
   * [@Transactional](java/@Transactional.md)
 
-* <font style="color:orange;font-size:16px;font-weight:500">wechat</font>
-  * [公众号扫码登陆实现](/wechat/公众号扫码登陆实现.md)
-  * [股票日记](/wechat/股票日记.md)
-  * [ETF日记](/wechat/ETF日记.md)
-
 * <font style="color:orange;font-size:16px;font-weight:500">Docker</font>
   * [Docker详解](/docker/Docker详解.md)
   * [Docker—安装配置](/docker/Docker—安装配置.md)
@@ -33,3 +28,7 @@
 - <font style="color:orange;font-size:16px;font-weight:500">常用类使用</font>
   - [日期](/常用类使用/日期.md)
   - [Stream](/常用类使用/Stream.md)
+
+* <font style="color:orange;font-size:16px;font-weight:500">💸理财</font>
+  * [股票日记](/💸理/股票日记.md)
+  * [ETF日记](/💸理/ETF日记.md)
