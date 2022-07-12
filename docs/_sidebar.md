@@ -28,7 +28,3 @@
 - <font style="color:orange;font-size:16px;font-weight:500">常用类使用</font>
   - [日期](/常用类使用/日期.md)
   - [Stream](/常用类使用/Stream.md)
-
-* <font style="color:orange;font-size:16px;font-weight:500">💸理财</font>
-  * [股票日记](/💸理财/股票日记.md)
-  * [ETF日记](/💸理财/ETF日记.md)
