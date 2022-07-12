@@ -28,3 +28,6 @@
 - <font style="color:orange;font-size:16px;font-weight:500">常用类使用</font>
   - [日期](/常用类使用/日期.md)
   - [Stream](/常用类使用/Stream.md)
+
+- <font style="color:orange;font-size:16px;font-weight:500">设计模式</font>
+  - [策略模式](/设计模式/策略模式.md)
