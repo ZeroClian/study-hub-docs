@@ -39,3 +39,4 @@
 
 - <font style="color:orange;font-size:16px;font-weight:500">MySQL</font>
   - [Docker搭建MySQL](/mysql/Docker搭建MySQL.md)
+  - [阿里云服务器的Mysql安装与配置详解](/mysql/阿里云服务器的Mysql安装与配置详解.md)
