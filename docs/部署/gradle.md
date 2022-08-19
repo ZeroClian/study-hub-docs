@@ -19,9 +19,30 @@ export PATH=$PATH:/opt/gradle/gradle-6.2.2/bin
 source ~/.bash_profile
 ```
 
-4. 检查：``gradle -v``
+4. 检查：``gradle -v``
+5. 修改 maven 下载源
 
-## Gradle项目结构
+在 init.d 目录下新建 init.gradle 文件，添加以下内容
+
+```
+allprojects{
+	repositories{
+		mavenLocal()
+		maven {name "Alibaba" ; url "https://maven.aliyun.com/repository/public"}
+		maven {name "Bstek" ; url "https://nexus.bsdn.org/content/groups/public/"}
+		mavenCentral()
+	}
+	buildscript{
+		repositories{
+		maven {name "Alibaba" ; url 'https://maven.aliyun.com/repository/public'}
+		maven {name "Bstek" ; url 'https://nexus.bsdn.org/content/groups/public/'}
+		maven {name "M2" ; url 'https://plugins.gradle.org/m2/'}
+		}
+	}
+}
+```
+
+## Gradle项目结构
 
 ```
 --build
