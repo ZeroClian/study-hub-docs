@@ -42,3 +42,8 @@
   - [Docker搭建MySQL](/mysql/Docker搭建MySQL.md)
   - [阿里云服务器的Mysql安装与配置详解](/mysql/阿里云服务器的Mysql安装与配置详解.md)
 
+- <font style="color:orange;font-size:16px;font-weight:500">Spring Cloud</font>
+  - [初始化项目](/SpringCloud/初始化项目.md)
+  - [整合Maven](/SpringCloud/整合Maven.md)
+  - [整合Gateway](/SpringCloud/整合Gateway.md)
+
