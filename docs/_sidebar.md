@@ -47,3 +47,7 @@
   - [整合Maven](/SpringCloud/整合Maven.md)
   - [整合Gateway](/SpringCloud/整合Gateway.md)
 
+- <font style="color:orange;font-size:16px;font-weight:500">Spring Boot</font>
+  - [整合MyBatis](/SpringBoot/整合MyBatis.md)
+  <!-- - [整合Maven](/SpringBoot/整合Maven.md) -->
+
