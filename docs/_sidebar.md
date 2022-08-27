@@ -21,6 +21,7 @@
   - [Jenkins](/部署/Jenkins.md)
   - [图床](/部署/图床.md)
   - [Gradle](/部署/gradle.md)
+  - [Maven](/部署/Maven.md)
   
 - <font style="color:orange;font-size:16px;font-weight:500">命令</font>
   - [MarkDown语法](/命令/MarkDown语法.md)
