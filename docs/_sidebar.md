@@ -2,6 +2,8 @@
 *  <font style="color:orange;font-size:16px;font-weight:500">Java</font>
   * [ArrayList源码分析](/java/ArrayList源码分析.md)
   * [@Transactional](java/@Transactional.md)
+  *  <font style="color:orange;font-size:16px;font-weight:500">算法</font>
+     * [栈与队列](java/栈与队列.md)
 
 * <font style="color:orange;font-size:16px;font-weight:500">Docker</font>
   * [Docker详解](/docker/Docker详解.md)
@@ -51,4 +53,8 @@
 - <font style="color:orange;font-size:16px;font-weight:500">Spring Boot</font>
   - [整合MyBatis](/SpringBoot/整合MyBatis.md)
   <!-- - [整合Maven](/SpringBoot/整合Maven.md) -->
+
+- <font style="color:orange;font-size:16px;font-weight:500">微信</font>
+  - [企业微信](/wechat/企业微信.md)
+  - [公众号扫码登陆实现](/wechat/公众号扫码登陆实现.md)
 
