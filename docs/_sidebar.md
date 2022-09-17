@@ -56,6 +56,6 @@
   <!-- - [整合Maven](/SpringBoot/整合Maven.md) -->
 
 - <font style="color:orange;font-size:16px;font-weight:500">微信</font>
-  - [企业微信](/wechat/企业微信.md)
+  - [企业微信扫码登录](/wechat/企业微信扫码登录.md)
   - [公众号扫码登陆实现](/wechat/公众号扫码登陆实现.md)
 
