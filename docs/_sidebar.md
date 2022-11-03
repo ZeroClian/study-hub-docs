@@ -46,15 +46,15 @@
   - [Docker搭建MySQL](/mysql/Docker搭建MySQL.md)
   - [阿里云服务器的Mysql安装与配置详解](/mysql/阿里云服务器的Mysql安装与配置详解.md)
 
-- <font style="color:orange;font-size:16px;font-weight:500">Spring Cloud</font>
-  - [初始化项目](/SpringCloud/初始化项目.md)
-  - [整合Maven](/SpringCloud/整合Maven.md)
-  - [整合Gateway](/SpringCloud/整合Gateway.md)
+- <font style="color:orange;font-size:16px;font-weight:500">Spring</font>
+  - [初始化项目](/Spring/初始化项目.md)
+  - [整合时遇到的问题](/Spring/整合时遇到的问题.md)
+  - [整合Maven](/Spring/整合Maven.md)
+  - [整合Gateway](/Spring/整合Gateway.md)
+  - [整合MyBatis](/Spring/整合MyBatis.md)
+  - [整合Nacos](/Spring/整合Nacos.md)
 
-- <font style="color:orange;font-size:16px;font-weight:500">Spring Boot</font>
-  - [整合MyBatis](/SpringBoot/整合MyBatis.md)
-  <!-- - [整合Maven](/SpringBoot/整合Maven.md) -->
-
+  
 - <font style="color:orange;font-size:16px;font-weight:500">微信</font>
   - [企业微信](/wechat/企业微信.md)
   - [公众号扫码登陆实现](/wechat/公众号扫码登陆实现.md)
