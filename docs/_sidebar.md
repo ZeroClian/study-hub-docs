@@ -52,6 +52,7 @@
   - [整合Maven](/Spring/整合Maven.md)
   - [整合Gateway](/Spring/整合Gateway.md)
   - [整合MyBatis](/Spring/整合MyBatis.md)
+  - [整合MyBatis-Plus](/Spring/整合MyBatis-Plus.md)
   - [整合Nacos](/Spring/整合Nacos.md)
 
   
