@@ -19,12 +19,14 @@
   * [初识Electron](/electron/初识Electron.md)
   * [开发](/electron/开发.md)
   * [项目起步](/electron/项目起步.md)
+  
 
 - <font style="color:orange;font-size:16px;font-weight:500">部署</font>
   - [Jenkins](/部署/Jenkins.md)
   - [图床](/部署/图床.md)
   - [Gradle](/部署/gradle.md)
   - [Maven](/部署/Maven.md)
+  - [Vue+SpringBoot手动部署](/部署/Vue+SpringBoot手动部署.md)
   
 - <font style="color:orange;font-size:16px;font-weight:500">命令</font>
   - [MarkDown语法](/命令/MarkDown语法.md)
