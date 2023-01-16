@@ -17,7 +17,7 @@ mkdir /usr/docker/mysql/log
 3. 创建容器并挂载数据
 
 ```bash
-docker run -d --name mysql5.7 -v /usr/docker/mysql/data:/var/lib/mysql -v /usr/docker/mysql/conf:/etc/mysql -v /usr/docker/mysql/log:/var/log/mysql -p 3306:3306 -e TZ=Asiz/Shanghai -e MYSQL_ROOT_PASSWORD=803017ycl.mysql mysql:5.7.37 --character-set-server=utf8mb4 --collation-server=utf8mb4_general_ci
+docker run -d --name mysql5.7 -v /usr/docker/mysql/data:/var/lib/mysql -v /usr/docker/mysql/conf:/etc/mysql -v /usr/docker/mysql/log:/var/log/mysql -p 3306:3306 -e TZ=Asiz/Shanghai -e MYSQL_ROOT_PASSWORD=mysql mysql:5.7.37 --character-set-server=utf8mb4 --collation-server=utf8mb4_general_ci
 ```
 
 ## 检查挂载是否有效
