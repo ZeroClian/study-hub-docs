@@ -1,4 +1,4 @@
-# 卸载
+## 卸载
 1. 检查是否运行
 
 ```bash
@@ -27,7 +27,7 @@ rm -rf /etc/init.d/nginx
 yum remove nginx
 ```
 
-# 安装
+## 安装
 1. 解压安装包
 
 ```bash
@@ -55,7 +55,7 @@ cd /usr/local/nginx/sbin
 5. 访问服务器ip地址出现
 
 
-# 常用命令
+## 常用命令
 ```bash
 1、启动nginx
   ./nginx
@@ -70,7 +70,7 @@ cd /usr/local/nginx/sbin
 
 
 
-# shell脚本
+## shell脚本
 
 ```shell
 #!/bin/bash

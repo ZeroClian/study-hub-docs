@@ -28,7 +28,7 @@ mkdir html
 
 #### 3. 安装 nginx
 
-- 安装：参考其他文章
+- 安装：[Nginx安装](/环境/nginx.md)
 
 - 修改配置：vim /usr/local/nginx/conf/nginx.conf 
 
