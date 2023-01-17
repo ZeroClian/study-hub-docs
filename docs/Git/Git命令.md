@@ -33,6 +33,11 @@ git remote set-url origin https://xxx.git
 ```bash
  ssh-add -K ~/.ssh/id_rsa
 ```
+## 测试连接
+
+```bash
+ssh -T git@github.com
+```
 
 ## 解决Failed to connect to github.com port 443: Timed out
 

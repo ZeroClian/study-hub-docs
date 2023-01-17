@@ -47,6 +47,8 @@ H~2~O is是液体。  `H~2~O is是液体。`
 
 图片: ![Alt](../images/logo.png)
 
+缩放图片40%：<img src="../images/logo.png" style="zoom:40%;" />
+
 ## 代码
 
 下面展示一些 `内联代码片`。

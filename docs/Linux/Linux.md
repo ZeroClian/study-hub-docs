@@ -62,3 +62,7 @@
 取消拒绝状态： `firewall-cmd --panic-off`
 
 查看是否拒绝： `firewall-cmd --query-panic`
+
+## 查看系统信息
+
+  `cat /etc/os-release`

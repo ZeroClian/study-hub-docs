@@ -69,8 +69,11 @@
   - [Excel](/工具类/Excel.md)
 
 - <font style="color:orange;font-size:16px;font-weight:500">环境</font>
-  - [nginx](/环境/nginx.md)
-  - [node](/环境/node.md)
+  - [JDK](/环境/jdk.md)
+  - [Docker](/环境/docker.md)
+  - [Nginx](/环境/nginx.md)
+  - [Node](/环境/node.md)
+  - [Nacos](/环境/nacos.md)
  
 
 
