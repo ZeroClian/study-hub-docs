@@ -118,7 +118,7 @@ mkdir html
 - 启动容器，开放端口号
 
   ```bash
-  docker run -di --name=cloud-nacos -p 8000:8000 cloud-naocs
+  docker run -di --name=cloud-nacos -p 8000:8000 cloud-nacos
   docker run -di --name=cloud-gateway -p 9000:9000 cloud-gateway
   docker run -di --name=cloud-service -p 8001:8001 cloud-service
   ```
