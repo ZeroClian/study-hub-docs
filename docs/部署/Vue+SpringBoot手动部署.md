@@ -18,7 +18,7 @@ mkdir html
 
 #### 2. 项目构建
 
-- 执行 npm run build
+- 执行 `npm run build`
 
   ![](http://cdn.liancode.top/img/20230116001513.png)
 
@@ -30,7 +30,7 @@ mkdir html
 
 - 安装：[Nginx安装](/环境/nginx.md)
 
-- 修改配置：vim /usr/local/nginx/conf/nginx.conf 
+- 修改配置：`vim /usr/local/nginx/conf/nginx.conf `
 
   ![](http://cdn.liancode.top/img/20230116002831.png)
 
@@ -63,20 +63,9 @@ mkdir html
           </plugin>
       </plugins>
   </build>
-  
-  <!-- common 包改为下面内容 -->
-  <plugins>
-      <plugin>
-          <groupId>org.springframework.boot</groupId>
-          <artifactId>spring-boot-maven-plugin</artifactId>
-          <configuration>
-              <classifier>exec</classifier>
-          </configuration>
-      </plugin>
-  </plugins>
   ```
 
-- 在项目目录下执行： mvn clean 和 mvn package
+- 在项目目录下执行： `mvn clean` 和 `mvn package`
 
   ![](http://cdn.liancode.top/img/20230116011617.png)
 
@@ -88,11 +77,11 @@ mkdir html
 
 安装docker查看其他文章
 
-- 拉取 ubuntu 镜像：docker pull ubuntu
+- 拉取 ubuntu 镜像：`docker pull ubuntu`
 
 - 新建一个 jdk 目录，将 jdk17的安装包copy到目录下
 
-- 新建 Dockerfile 文件：vim Dockerfile
+- 新建 Dockerfile 文件：`vim Dockerfile`
 
   ```
   FROM ubuntu
@@ -108,11 +97,11 @@ mkdir html
 
   ![](http://cdn.liancode.top/img/20230116013123.png)
 
-- 在 Dockerfile 文件所在目录执行：docker build -t jdk17 .
+- 在 Dockerfile 文件所在目录执行：`docker build -t jdk17 .`
 
-  将会生成了一个名为 jdk17 的镜像，使用 docker images 查看
+  将会生成了一个名为 jdk17 的镜像，使用 `docker images` 查看
 
-- 同样的方式，在 jar 目录下新建 Dockerfile 文件，执行：docker build -t cloud-service .
+- 同样的方式，在 jar 目录下新建 Dockerfile 文件，执行：`docker build -t cloud-service .`
 
   ```bash
   FROM jdk17
