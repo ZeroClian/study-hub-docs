@@ -79,11 +79,11 @@ writer.save(new FileOutputStream("D:/a.xlsx"));
    public class Excel {
        private static final Logger logger = LoggerFactory.getLogger(Excel.class);
    
-       public static ExcelReader<T> createReader(Supplier<T> supplier) {
+       public static <T> ExcelReader<T> createReader(Supplier<T> supplier) {
            return new ExcelReader<>(supplier);
        }
    
-       public static ExcelWriter<T> createWriter(Class<T> clazz) {
+       public static <T> ExcelWriter<T> createWriter(Class<T> clazz) {
            return new ExcelWriter<>(clazz);
        }
    
