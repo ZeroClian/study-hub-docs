@@ -4,16 +4,16 @@
 
 #### 1.初步结构
 
-![分布式锁](https://gitee.com/ZeroClian/my-picture/raw/master/img/%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81.png)
+![分布式锁](http://cdn.liancode.top/img/20230118173310.png)
 
 #### 2.代码结构：
 
-![iShot2021-12-12 15.53.04](https://gitee.com/ZeroClian/my-picture/raw/master/img/iShot2021-12-12%2015.53.04.png)
+![代码结构](http://cdn.liancode.top/img/20230118173141.png)
 
-3. 准备工作（百度一堆）：
+1. 准备工作（百度一堆）：
 
-1. 整合Redis到SpringBoot中
-2. 本地或服务器搭建好redis环境
+2. 整合Redis到SpringBoot中
+3. 本地或服务器搭建好redis环境
 
 目标：实现一个可重入自旋的分布式锁，并提供注解形式，便于使用。
 
