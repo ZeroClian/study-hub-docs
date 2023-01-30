@@ -75,7 +75,7 @@ mkdir html
 
 因为运行 jar 包需要 jdk 环境，项目使用的是 jdk17，因此需要据此制作一个含有 jdk17 的基础镜像，选用 ubuntu 为基础来进行制作
 
-安装docker查看其他文章
+[安装docker](/环境/docker.md)
 
 - 拉取 ubuntu 镜像：`docker pull ubuntu`
 
