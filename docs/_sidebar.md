@@ -16,6 +16,7 @@
   
 - <font style="color:orange;font-size:16px;font-weight:500">Redis</font>
   - [基于Redis的分布式锁实现](/redis/基于Redis的分布式锁实现.md)
+  - [Redis持久化](/redis/Redis持久化.md)
 
 - <font style="color:orange;font-size:16px;font-weight:500">MySQL</font>
   - [Docker搭建MySQL](/mysql/Docker搭建MySQL.md)
