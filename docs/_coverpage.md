@@ -1,4 +1,4 @@
-<img src="../images/head.jpg" style="zoom:20%;" />
+<img src="../images/head.png" style="zoom:120%;" />
 
 # Study-Hub
 ### 技术改变生活
