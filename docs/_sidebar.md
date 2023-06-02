@@ -9,6 +9,7 @@
 - <font style="color:orange;font-size:16px;font-weight:500">Linux</font>
   - [软件](/Linux/软件.md)
   - [Linux](/Linux/Linux.md)
+  - [Linux常识](/Linux/Linux常识.md)
 
 - <font style="color:orange;font-size:16px;font-weight:500">Docker</font>
   - [Docker详解](/docker/Docker详解.md)
