@@ -10,10 +10,13 @@
   - [软件](/Linux/软件.md)
   - [Linux](/Linux/Linux.md)
   - [Linux常识](/Linux/Linux常识.md)
+  - [遇到的问题](/Linux/遇到的问题.md)
+  - [Service](/Linux/Service.md)
 
 - <font style="color:orange;font-size:16px;font-weight:500">Docker</font>
   - [Docker详解](/docker/Docker详解.md)
   - [Docker—安装配置](/docker/Docker—安装配置.md)
+  - [Elasticsearch](/docker/Elasticsearch.md)
   
 - <font style="color:orange;font-size:16px;font-weight:500">Redis</font>
   - [基于Redis的分布式锁实现](/redis/基于Redis的分布式锁实现.md)
