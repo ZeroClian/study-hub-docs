@@ -12,4 +12,4 @@ export PATH=$JAVA_HOME/bin:$PATH
 ```
 4. 重新加载环境变量：`source /etc/profile`
 
-![](http://cdn.liancode.top/img/20230117221325.png)
+![](https://github.com/ZeroClian/picture/blob/master/img/20230117221325.png?raw=true)

@@ -98,4 +98,4 @@ mybatis:
    4. 创建controller和service类（代码省略）
    5. 调用结果
 
-    ![202208271704986](http://cdn.liancode.top/img/202208271704986.png)
+    ![202208271704986](https://github.com/ZeroClian/picture/blob/master/img/202208271704986.png?raw=true)

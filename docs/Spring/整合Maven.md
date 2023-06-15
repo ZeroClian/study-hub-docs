@@ -55,4 +55,4 @@ eureka:
 ## 效果展示
 访问：`http://127.0.0.1:8761/`
 
-![http://cdn.liancode.top/img/20220823165120.png](http://cdn.liancode.top/img/20220823165120.png)
+![https://github.com/ZeroClian/picture/blob/master/img/20220823165120.png?raw=true](https://github.com/ZeroClian/picture/blob/master/img/20220823165120.png?raw=true)

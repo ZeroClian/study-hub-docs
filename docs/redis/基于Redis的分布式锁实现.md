@@ -4,11 +4,11 @@
 
 #### 1.初步结构
 
-![分布式锁](http://cdn.liancode.top/img/20230118173310.png)
+![分布式锁](https://github.com/ZeroClian/picture/blob/master/img/20230118173310.png?raw=true)
 
 #### 2.代码结构：
 
-![代码结构](http://cdn.liancode.top/img/20230118173141.png)
+![代码结构](https://github.com/ZeroClian/picture/blob/master/img/20230118173141.png?raw=true)
 
 1. 准备工作（百度一堆）：
 
