@@ -245,5 +245,5 @@
 
   查询结果
   
-  ![](http://cdn.liancode.top/img/获取用户信息分页列表查询.png)
+  ![](https://github.com/ZeroClian/picture/blob/master/img/获取用户信息分页列表查询.png?raw=true)
 

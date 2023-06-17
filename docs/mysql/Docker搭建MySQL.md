@@ -96,7 +96,7 @@ docker stop mysql5.7 && docker rm mysql5.7
 ```
 
 ## 报错
-![2003错误](http://cdn.liancode.top/img/20220726160414.png)
+![2003错误](https://github.com/ZeroClian/picture/blob/master/img/20220726160414.png?raw=true)
 
 ```
 允许所有用户可访问

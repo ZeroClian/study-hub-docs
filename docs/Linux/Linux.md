@@ -66,3 +66,8 @@
 ## 查看系统信息
 
   `cat /etc/os-release`
+
+## 查看系统字体
+
+- `fc-list`：查看所有字体
+- `fc-list :lang=zh`：查看中文字体

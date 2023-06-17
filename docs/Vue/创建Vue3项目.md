@@ -3,7 +3,7 @@
 - 安装依赖：`npm install -g @vue/cli` or `cnpm install -g @vue/cli`
 - 查看安装结果： `vue --version`
 
-![vue安装结果](http://cdn.liancode.top/img/vue安装结果.png)
+![vue安装结果](https://github.com/ZeroClian/picture/blob/master/img/vue安装结果.png?raw=true)
 
 - 升级： `npm update -g @vue/cli`
 - 创建项目：`vue create admin`

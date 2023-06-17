@@ -86,7 +86,7 @@ spring:
 
 ### nacos上配置文件
 
-![nacos配置文件](http://cdn.liancode.top/img/20221103171919.png)
+![nacos配置文件](https://github.com/ZeroClian/picture/blob/master/img/20221103171919.png?raw=true)
 
 内容为：
 ```yml
@@ -122,5 +122,5 @@ public class ConfigController {
 
 结果：
 
-![结果](http://cdn.liancode.top/img/20221103172216.png)
+![结果](https://github.com/ZeroClian/picture/blob/master/img/20221103172216.png?raw=true)
 

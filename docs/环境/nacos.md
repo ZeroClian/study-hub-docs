@@ -12,6 +12,6 @@ cd nacos/bin
   - 启动：`sh startup.sh -m standalone`
   - 停止：`sh shutdown.sh`
 
-![](http://cdn.liancode.top/img/20230117221703.png)
+![](https://github.com/ZeroClian/picture/blob/master/img/20230117221703.png?raw=true)
 
   - 访问：`http://ip:8848/nacos/`

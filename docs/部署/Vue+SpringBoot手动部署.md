@@ -20,11 +20,11 @@ mkdir html
 
 - 执行 `npm run build`
 
-  ![](http://cdn.liancode.top/img/20230116001513.png)
+  ![](https://github.com/ZeroClian/picture/blob/master/img/20230116001513.png?raw=true)
 
 - 将生成的 dist 目录上传到刚才创建的 /www/html/ 下
 
-  ![](http://cdn.liancode.top/img/20230116001833.png)
+  ![](https://github.com/ZeroClian/picture/blob/master/img/20230116001833.png?raw=true)
 
 #### 3. 安装 nginx
 
@@ -32,11 +32,11 @@ mkdir html
 
 - 修改配置：`vim /usr/local/nginx/conf/nginx.conf `
 
-  ![](http://cdn.liancode.top/img/20230116002831.png)
+  ![](https://github.com/ZeroClian/picture/blob/master/img/20230116002831.png?raw=true)
 
 - 访问 ip:80 
 
-  ![](http://cdn.liancode.top/img/20230116003212.png)
+  ![](https://github.com/ZeroClian/picture/blob/master/img/20230116003212.png?raw=true)
 
 
 
@@ -67,7 +67,7 @@ mkdir html
 
 - 在项目目录下执行： `mvn clean` 和 `mvn package`
 
-  ![](http://cdn.liancode.top/img/20230116011617.png)
+  ![](https://github.com/ZeroClian/picture/blob/master/img/20230116011617.png?raw=true)
 
   使用 rz 命令上传到服务器上，这里为新建了一个目录 /jar 用于存放
 
@@ -95,7 +95,7 @@ mkdir html
   ENV PATH $JAVA_HOME/bin:$PATH
   ```
 
-  ![](http://cdn.liancode.top/img/20230116013123.png)
+  ![](https://github.com/ZeroClian/picture/blob/master/img/20230116013123.png?raw=true)
 
 - 在 Dockerfile 文件所在目录执行：`docker build -t jdk17 .`
 
@@ -111,7 +111,7 @@ mkdir html
 
   最后我们会得到四个镜像：
 
-  ![](http://cdn.liancode.top/img/20230116013954.png)
+  ![](https://github.com/ZeroClian/picture/blob/master/img/20230116013954.png?raw=true)
 
 #### 3. 启动容器
 
@@ -123,9 +123,9 @@ mkdir html
   docker run -di --name=cloud-service -p 8001:8001 cloud-service
   ```
 
-  ![](http://cdn.liancode.top/img/20230116014203.png)
+  ![](https://github.com/ZeroClian/picture/blob/master/img/20230116014203.png?raw=true)
 
 - 验证是否成功
 
-  ![](http://cdn.liancode.top/img/20230116014741.png)
+  ![](https://github.com/ZeroClian/picture/blob/master/img/20230116014741.png?raw=true)
 

@@ -35,4 +35,4 @@ yum-config-manager \
 yum install docker-ce docker-ce-cli containerd.io docker-compose-plugin
 ```
 
-<img src="http://cdn.liancode.top/img/20230117230456.png" style="zoom:40%;" />
+<img src="https://github.com/ZeroClian/picture/blob/master/img/20230117230456.png?raw=true" style="zoom:40%;" />
