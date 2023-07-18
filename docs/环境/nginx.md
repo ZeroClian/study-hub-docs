@@ -42,7 +42,7 @@ yum install -y zlib zlib-devel
 ```
 3. 编译安装
 ```
-./configure --prefix=/usr/local/nginx 
+./configure --with-http_ssl_module 
 make 
 make install
 ```
