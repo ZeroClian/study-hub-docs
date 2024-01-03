@@ -51,5 +51,23 @@ exec 在容器中打开新的终端，并且可以启动新的进程
 
 > 默认情况下参数为-1，即没有限制，当指定 -m 而不指定 --memory-swap 时， --memory-swap 默认为 -m 的两倍
 
+`--vm 1`：启动一个工作线程
 
+`--vm-bytes 280m`：每个线程分配280MB内存
 
+- CPU限额
+
+`-c/--cpu-share`：设置容器使用CPU的权重（仅在资源紧张的情况下按权重分配）
+
+- Block IO 带宽限额
+
+  Block IO 指的是磁盘的读写
+--blkio-weight：相对权重值
+
+bps：每秒读写的数据量
+
+iops：每秒IO的次数
+
+`--device-read-bps`：限制读某个设备的bps
+`--device-write-bps`：限制写某个设备的bps
+`--device-read-iops`：限制读某个设备的iops
