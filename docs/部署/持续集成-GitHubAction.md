@@ -144,7 +144,7 @@ jobs:
 
 这时只需要在服务器上重新拉取最新的镜像，重新启动容器即可完成项目的更新
 
- ```bash
+ ```shell
   docker pull zeroclian/cloud-gateway
   docker pull zeroclian/cloud-service
   docker run -di --name=cloud-gateway -p 9999:9999 zeroclian/cloud-gateway
@@ -154,7 +154,7 @@ jobs:
 ## 配置解析
 
 - name: 工作流名称，将显示在Actions的All workflows下
-- on: 配置触发工作流的事件动作，如push；也可以制定某个分支，排除某个文件
+- on: 配置触发工作流的事件动作，如push；也可以指定某个分支，排除某个文件
 - jobs: 作业组，配置需要执行的一系列步骤，顺序执行
   - name: 作业的名称，会显示到Github Action上，示例中为`deployment` 和 `build` 
   - runs-on: 指定运行的服务器类型
