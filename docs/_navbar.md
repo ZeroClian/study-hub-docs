@@ -4,5 +4,5 @@
 
 * 资料
   * [项目地址](https://github.com/ZeroClian/study-hub-docs)
-  * [公众号]()
+  * [公众号](https://zeroclian.cn/images/gongzhonghao.png)
 

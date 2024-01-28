@@ -58,6 +58,7 @@
   - [Gradle](/部署/gradle.md)
   - [Maven](/部署/Maven.md)
   - [Vue+SpringBoot手动部署](/部署/Vue+SpringBoot手动部署.md)
+  - [持续集成-GitHubAction](/部署/持续集成-GitHubAction.md)
   - [GitHub Action](/部署/GitHub-Action.md)
 
 - <font style="color:orange;font-size:16px;font-weight:500">常用类使用</font>
