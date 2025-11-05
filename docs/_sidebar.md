@@ -86,6 +86,10 @@
   - [Nginx](/环境/nginx.md)
   - [Node](/环境/node.md)
   - [Nacos](/环境/nacos.md)
+  
+- <font style="color:orange;font-size:16px;font-weight:500">软件设计师</font>
+  - [操作系统](/软件设计师/操作系统.md)
+  
  
 
 
