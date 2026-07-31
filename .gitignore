@@ -62,3 +62,9 @@ gen_code
 ##
 db/db_back_dir/
 /redis/
+
+### VuePress ###
+node_modules/
+docs/.vuepress/.cache/
+docs/.vuepress/.temp/
+docs/.vuepress/dist/

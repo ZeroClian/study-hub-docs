@@ -1,0 +1,23 @@
+{
+  "name": "study-hub-docs",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Study Hub personal knowledge base powered by VuePress Theme Hope",
+  "scripts": {
+    "dev": "vuepress dev docs",
+    "build": "vuepress build docs",
+    "docs:dev": "vuepress dev docs",
+    "docs:build": "vuepress build docs",
+    "docs:clean": "rm -rf docs/.vuepress/.cache docs/.vuepress/.temp docs/.vuepress/dist"
+  },
+  "devDependencies": {
+    "@vuepress/bundler-vite": "2.0.0-rc.28",
+    "@vuepress/plugin-slimsearch": "next",
+    "mermaid": "^11.15.0",
+    "sass-embedded": "^1.99.0",
+    "vue": "^3.5.32",
+    "vuepress": "2.0.0-rc.28",
+    "vuepress-theme-hope": "2.0.0-rc.106"
+  },
+  "packageManager": "pnpm@11.0.9"
+}
