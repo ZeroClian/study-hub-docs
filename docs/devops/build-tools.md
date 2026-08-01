@@ -9,14 +9,14 @@ description: Maven 环境配置和 Gradle 安装、项目结构与常用命令�
 
 ## Maven
 
-1. 下载安装包 [Maven](https://maven.apache.org/download.cgi) 官网
+1. 从 [Maven 官网](https://maven.apache.org/download.cgi) 下载与项目兼容的受支持版本；已有 Maven Wrapper 时优先使用 Wrapper
 2. 解压到相应目录
 3. 配置环境变量
 
 ```
 vim ~/.zshrc
 # maven 配置
-export MAVEN_HOME=/opt/maven/apache-maven-3.6.3
+export MAVEN_HOME=/opt/maven/apache-maven-3.9.x
 export PATH=$PATH:$MAVEN_HOME/bin
 # 环境生效
 source ~/.zshrc
@@ -26,7 +26,7 @@ source ~/.zshrc
    1. 修改本地仓库位置
 
    ```xml
-   <localRepository>/Users/lian/Documents/dev/maven_repository</localRepository>
+   <localRepository>${user.home}/.m2/repository</localRepository>
    ```
 
    2. 修改仓库地址
@@ -36,7 +36,7 @@ source ~/.zshrc
        <id>alimaven</id>
        <mirrorOf>central</mirrorOf>
        <name>aliyun maven</name>
-       <url>http://maven.aliyun.com/nexus/content/groups/public/</url>
+       <url>https://maven.aliyun.com/repository/public</url>
    </mirror>
    ```
 
@@ -44,26 +44,26 @@ source ~/.zshrc
 
 ### Mac安装
 
-1. 下载压缩包：[gradle6.2.2版本下载](https://gradle.org/next-steps/?version=6.2.2&format=bin)
-2. 安装
+1. 新项目优先使用项目自带的 Gradle Wrapper（`./gradlew`），不必全局安装固定版本。需要全局安装时，请从[Gradle 官方下载页](https://gradle.org/releases/)选择受支持版本。
+2. 安装（以下版本号仅为示例，应与下载文件名保持一致）
 
 ```bash
 sudo mkdir /opt/gradle
-sudo unzip -d /opt/gradle gradle-6.2.2-bin.zip
+sudo unzip -d /opt/gradle gradle-8.14-bin.zip
 ```
 
 3. 配置环境变量
 
 ```bash
-//打开配置文件
-vim ~/.bash_profile
-//最后一行添加
-export PATH=$PATH:/opt/gradle/gradle-6.2.2/bin
-//刷新配置
-source ~/.bash_profile
+# macOS 默认使用 zsh；Linux 可改为 ~/.bashrc
+vim ~/.zshrc
+# 最后一行添加（版本号按实际安装目录调整）
+export PATH="/opt/gradle/gradle-8.14/bin:$PATH"
+# 刷新配置
+source ~/.zshrc
 ```
 
-4. 检查：``gradle -v``
+4. 检查：`gradle -v`
 5. 修改 maven 下载源
 
 在 init.d 目录下新建 init.gradle 文件，添加以下内容
@@ -73,13 +73,11 @@ allprojects{
 	repositories{
 		mavenLocal()
 		maven {name "Alibaba" ; url "https://maven.aliyun.com/repository/public"}
-		maven {name "Bstek" ; url "https://nexus.bsdn.org/content/groups/public/"}
 		mavenCentral()
 	}
 	buildscript{
 		repositories{
 		maven {name "Alibaba" ; url 'https://maven.aliyun.com/repository/public'}
-		maven {name "Bstek" ; url 'https://nexus.bsdn.org/content/groups/public/'}
 		maven {name "M2" ; url 'https://plugins.gradle.org/m2/'}
 		}
 	}
@@ -89,26 +87,23 @@ allprojects{
 ### Gradle项目结构
 
 ```
---build
-----gradle
-------wrapper
-	  --gradle.wrapper.jar
-	  --gradle.wrapper.properties
---src
-  --main
-    --java
-    --resources
-    --webapp
-      --WEB-INF
-        --web.xml
-      --index.html
-  --test
-    --java
-    --resources
---gradlew
---gradlew.bat 包装器启动脚本
---build.gradle	构建脚本，类似pom.xml
---settings.gradle  设置文件，定义项目及子项目名称信息，和项目一一对应关系
+project/
+├── build/                      # 构建产物
+├── gradle/
+│   └── wrapper/
+│       ├── gradle-wrapper.jar
+│       └── gradle-wrapper.properties
+├── src/
+│   ├── main/
+│   │   ├── java/
+│   │   └── resources/
+│   └── test/
+│       ├── java/
+│       └── resources/
+├── gradlew                     # Wrapper 启动脚本
+├── gradlew.bat
+├── build.gradle                # 构建脚本，类似 pom.xml
+└── settings.gradle             # 项目及子项目设置
 ```
 
 ### Gradle 常用命令
@@ -116,9 +111,9 @@ allprojects{
 | 指令                 | 作用                       |
 | -------------------- | -------------------------- |
 | gradle clean         | 清空 build 目录            |
-| gradle classes       | 编译业务代码和配置文件     |
-| gradle test          | 编译测试代码，生成测试代码 |
-| gradle build         | 构建项目                   |
-| gradle build -x test | 跳过测试构建进行构建       |
+| `./gradlew classes`       | 编译业务代码和资源     |
+| `./gradlew test`          | 编译并执行测试         |
+| `./gradlew build`         | 构建项目并执行检查     |
+| `./gradlew build -x test` | 跳过测试构建（仅在明确需要时使用） |
 
 > gradle 指令要在含有 build.gradle 的目录执行

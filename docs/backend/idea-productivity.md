@@ -7,6 +7,8 @@ description: IDEA 热部署与代码生成器配置。
 
 汇总项目开发阶段常用的 IDEA 效率配置。
 
+> 代码生成器连接数据库时不要把真实密码或公网数据库地址提交到仓库；示例使用占位符，实际值建议通过 Maven profile、环境变量或本地配置注入。
+
 ## 热部署
 
 > 热部署比正常启动更快
@@ -50,9 +52,9 @@ description: IDEA 热部署与代码生成器配置。
        </configuration>
        <dependencies>
            <dependency>
-               <groupId>mysql</groupId>
-               <artifactId>mysql-connector-java</artifactId>
-               <version>5.1.49</version>
+       <groupId>com.mysql</groupId>
+               <artifactId>mysql-connector-j</artifactId>
+               <version>8.4.0</version>
            </dependency>
        </dependencies>
    </plugin>
@@ -83,22 +85,22 @@ description: IDEA 热部署与代码生成器配置。
                <property name="suppressAllComments" value="true"/>
            </commentGenerator>
    
-           <jdbcConnection driverClass="com.mysql.jdbc.Driver"
-                           connectionURL="jdbc:mysql://47.106.120.147:3306/course"
-                           userId="course"
-                           password="course">
+           <jdbcConnection driverClass="com.mysql.cj.jdbc.Driver"
+                           connectionURL="jdbc:mysql://localhost:3306/course?useSSL=false&amp;serverTimezone=Asia/Shanghai"
+                           userId="${db.user}"
+                           password="${db.password}">
            </jdbcConnection>
    
            <!-- domain类的位置 -->
-           <javaModelGenerator targetProject="src\main\java"
+           <javaModelGenerator targetProject="src/main/java"
                                targetPackage="com.course.domain"/>
    
            <!-- mapper xml的位置 -->
-           <sqlMapGenerator targetProject="src\main\resources"
+           <sqlMapGenerator targetProject="src/main/resources"
                             targetPackage="mapper"/>
    
            <!-- mapper类的位置 -->
-           <javaClientGenerator targetProject="src\main\java"
+           <javaClientGenerator targetProject="src/main/java"
                                 targetPackage="com.course.mapper"
                                 type="XMLMAPPER" />
    

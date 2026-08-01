@@ -1,6 +1,6 @@
 ---
 title: Spring 项目搭建与工程配置
-description: Spring 多模块项目、Maven 服务与客户端、公共配置和常见问题。
+description: Spring 多模块项目、Eureka 服务与客户端、公共配置和常见问题。
 ---
 
 # Spring 项目搭建与工程配置
@@ -52,34 +52,30 @@ public class EurekaApplication {
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
 <!--            <Pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %highlight(%-5level) %blue(%-50logger{50}:%-4line) %msg%n</Pattern>-->
-            <Pattern>%d{ss.SSS} %highlight(%-5level) %blue(%-30logger{30}:%-4line) %msg%n</Pattern>
+            <pattern>%d{ss.SSS} %highlight(%-5level) %blue(%-30logger{30}:%-4line) %msg%n</pattern>
         </encoder>
     </appender>
 
     <appender name="TRACE_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${PATH}/trace.log</file>
-        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <FileNamePattern>${PATH}/trace.%d{yyyy-MM-dd}.%i.log</FileNamePattern>
-            <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
-                <maxFileSize>10MB</maxFileSize>
-            </timeBasedFileNamingAndTriggeringPolicy>
+    <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${PATH}/trace.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>10MB</maxFileSize>
         </rollingPolicy>
-        <layout>
+        <encoder>
             <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level %-50logger{50}:%-4line %green(%-8X{UUID}) %msg%n</pattern>
-        </layout>
+        </encoder>
     </appender>
 
     <appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${PATH}/error.log</file>
-        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <FileNamePattern>${PATH}/error.%d{yyyy-MM-dd}.%i.log</FileNamePattern>
-            <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
-                <maxFileSize>10MB</maxFileSize>
-            </timeBasedFileNamingAndTriggeringPolicy>
+    <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${PATH}/error.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>10MB</maxFileSize>
         </rollingPolicy>
-        <layout>
+        <encoder>
             <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level %-50logger{50}:%-4line %green(%-8X{UUID}) %msg%n</pattern>
-        </layout>
+        </encoder>
         <filter class="ch.qos.logback.classic.filter.LevelFilter">
             <level>ERROR</level>
             <onMatch>ACCEPT</onMatch>
@@ -87,16 +83,10 @@ public class EurekaApplication {
         </filter>
     </appender>
 
-    <root level="ERROR">
-        <appender-ref ref="ERROR_FILE" />
-    </root>
-
-    <root level="TRACE">
-        <appender-ref ref="TRACE_FILE" />
-    </root>
-
     <root level="INFO">
         <appender-ref ref="STDOUT" />
+        <appender-ref ref="TRACE_FILE" />
+        <appender-ref ref="ERROR_FILE" />
     </root>
 </configuration>
 ```
@@ -121,7 +111,7 @@ public class EurekaApplication {
 
 ![](https://github.com/ZeroClian/picture/blob/master/img/公共配置.png?raw=true)
 
-## Maven 服务与客户端
+## Eureka 服务与客户端
 
 ### 服务端
 1. 引入依赖
@@ -175,7 +165,7 @@ eureka:
       defaultZone: http://localhost:8761/eureka/
 ```
 
-3. 启动类添加注解：`@EnableEurekaClient`
+3. 现代 Spring Cloud Netflix Eureka 客户端通常通过 starter 自动注册，不再需要 `@EnableEurekaClient`；旧版本项目可以按对应版本文档添加该注解。
 
 ### 效果展示
 访问：`http://127.0.0.1:8761/`
@@ -203,4 +193,4 @@ eureka:
   <scope>import</scope>
 </dependency>
 ```
-  原因：spring-cloud-dependencies 2020.0.0 默认不在加载bootstrap 配置文件，如果项目中要用bootstrap 配置文件 需要手动添加spring-cloud-starter-bootstrap 依赖，不然启动项目会报错的
+  原因：较新的 Spring Cloud 默认不会自动加载 `bootstrap.yml`。如果项目仍采用 bootstrap 配置方式，需要添加 `spring-cloud-starter-bootstrap`；新项目也可以按版本文档改用 `spring.config.import`。

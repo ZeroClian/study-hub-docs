@@ -9,7 +9,7 @@ description: 使用 Spring Boot 与 Redis 实现分布式锁。
 
 > 使用技术：SpringBoot + Redis
 >
-> ❗️本人初学，代码或许有些考虑不周的地方，仅做参考，其他锁相关知识请自行百度，随着后续学习，或许会更新基于Zookeeper的实现
+> ❗️这是教学示例，不建议直接作为生产级锁实现。生产环境优先使用经过验证的 Redisson 等实现，并评估租约、续期、故障转移、fencing token 和业务幂等性。
 
 ## 1.初步结构
 
@@ -62,15 +62,14 @@ public class RedisReentrantLockUtils {
      */
     public static String getLockKey(ProceedingJoinPoint joinPoint) {
         DistributeLock distributeLock = getDistributeLock(joinPoint);
-        StringBuffer lockKey = new StringBuffer();
+        StringBuilder lockKey = new StringBuilder();
         //key前缀
         if (Strings.isNotBlank(distributeLock.param())) {
             Object[] args = joinPoint.getArgs();
             try {
-                Integer index = new Integer(distributeLock.param());
-                Object prefix = args[index];
-                if (args.length >= index) {
-                    lockKey.append(prefix.toString()).append("@");
+                int index = Integer.parseInt(distributeLock.param());
+                if (index >= 0 && index < args.length && args[index] != null) {
+                    lockKey.append(args[index]).append("@");
                 }
             } catch (Exception e) {
             }
@@ -82,8 +81,9 @@ public class RedisReentrantLockUtils {
         switch (lockKeyStrategy) {
             case USER_METHOD:
                 // 获取请求头中的token
-                HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
-                return lockKey.append(request.getHeader(HttpHeaders.AUTHORIZATION) + "@" + signature).toString();
+                ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+                String token = attributes == null ? "anonymous" : attributes.getRequest().getHeader(HttpHeaders.AUTHORIZATION);
+                return lockKey.append(String.valueOf(token)).append("@").append(signature).toString();
             case CUSTOM:
                 return lockKey.append(Strings.isNotBlank(distributeLock.lockKey()) ? distributeLock.lockKey() : signature).toString();
             case METHOD:
@@ -109,6 +109,9 @@ public class RedisReentrantLockUtils {
             // 获取localhost的网卡设备
             NetworkInterface networkInterface = NetworkInterface.getByInetAddress(InetAddress.getLocalHost());
             // 获取硬件地址
+            if (networkInterface == null || networkInterface.getHardwareAddress() == null) {
+                return "";
+            }
             byte[] hardwareAddress = networkInterface.getHardwareAddress();
             StringBuilder builder = new StringBuilder();
             for (int i = 0; i < hardwareAddress.length; i++) {
@@ -123,13 +126,8 @@ public class RedisReentrantLockUtils {
 
     public static Integer getJvmId() {
         try {
-            RuntimeMXBean runtimeMxBean = ManagementFactory.getRuntimeMXBean();
-            Field jvm = runtimeMxBean.getClass().getDeclaredField("jvm");
-            jvm.setAccessible(true);
-            VMManagement vmManagement = (VMManagement) jvm.get(runtimeMxBean);
-            Method pidMethod = vmManagement.getClass().getDeclaredMethod("getProcessId");
-            pidMethod.setAccessible(true);
-            return (Integer) pidMethod.invoke(vmManagement);
+            long pid = ProcessHandle.current().pid();
+            return Math.toIntExact(pid);
         } catch (Exception e) {
             return -1;
         }
@@ -255,7 +253,7 @@ public class RedisReentrantLock {
     }
 
     public void lock() throws Exception {
-        Boolean getLock = RedisManager.setIfAbsent(lockKey, lockValue, timeOut);
+        boolean getLock = Boolean.TRUE.equals(RedisManager.setIfAbsent(lockKey, lockValue, timeOut));
         if (!getLock) {
             if (isLockOwner(lockKey)) {
                 int count = lockCount.get().incrementAndGet();
@@ -267,8 +265,10 @@ public class RedisReentrantLock {
             case RETRY:
                 while (!getLock) {
                     log.debug("获取锁[ {}-{} ]失败", lockKey, lockValue);
-                    getLock = RedisManager.setIfAbsent(lockKey, lockValue, timeOut);
-                    Thread.sleep(SPIN_TIME);
+                    getLock = Boolean.TRUE.equals(RedisManager.setIfAbsent(lockKey, lockValue, timeOut));
+                    if (!getLock) {
+                        Thread.sleep(SPIN_TIME);
+                    }
                 }
                 log.debug("获取锁[ {}-{} ]成功", lockKey, lockValue);
                 break;
@@ -308,7 +308,8 @@ public class RedisReentrantLock {
         unlockScript.setResultType(Long.class);
         unlockScript.setScriptText(REDIS_UNLOCK_LUA);
         List<String> keys = Collections.singletonList(lockKey);
-        return (Long) RedisManager.executeLuaScript(unlockScript, keys, lockValue) == REDIS_UNLOCK_SUCCESS;
+        return Long.valueOf(REDIS_UNLOCK_SUCCESS).equals(
+                RedisManager.executeLuaScript(unlockScript, keys, lockValue));
     }
 
     /**
@@ -319,11 +320,18 @@ public class RedisReentrantLock {
     private Boolean isLockOwner(String lockKey) {
         if (RedisManager.exists(lockKey)) {
             String lockValueJsonString = RedisManager.get(lockKey);
+            if (lockValueJsonString == null) {
+                return false;
+            }
             JsonNode lockValue = JSON.parse(lockValueJsonString, JsonNode.class);
-            assert lockValue != null;
+            if (lockValue == null || lockValue.get(RedisReentrantLockUtils.MAC) == null
+                    || lockValue.get(RedisReentrantLockUtils.JVM) == null
+                    || lockValue.get(RedisReentrantLockUtils.THREAD) == null) {
+                return false;
+            }
             return RedisReentrantLockUtils.getMacAddress().equals(lockValue.get(RedisReentrantLockUtils.MAC).textValue()) &&
                     RedisReentrantLockUtils.getJvmId() == lockValue.get(RedisReentrantLockUtils.JVM).intValue() &&
-                    RedisReentrantLockUtils.getThreadId() == lockValue.get(RedisReentrantLockUtils.THREAD).intValue();
+                    RedisReentrantLockUtils.getThreadId() == lockValue.get(RedisReentrantLockUtils.THREAD).longValue();
         }
         return false;
     }
@@ -364,7 +372,7 @@ public class RedisReentrantLockDaemon implements Runnable {
     /**
      * 守护线程开关标志
      */
-    private volatile Boolean signal;
+    private volatile boolean signal;
 
     /**
      * 延时释放redis锁的Lua脚本
@@ -386,7 +394,17 @@ public class RedisReentrantLockDaemon implements Runnable {
     @Override
     public void run() {
         log.debug(">>>>>>守护线程启动");
-        long waitTime = timeOut * 1000 * 2 / 3;
+        if (timeOut <= 0) {
+            log.warn("锁超时时间必须大于 0 秒");
+            return;
+        }
+        long waitTime;
+        try {
+            waitTime = Math.max(1, Math.multiplyExact(timeOut, 1000L) * 2 / 3);
+        } catch (ArithmeticException e) {
+            log.error("锁超时时间过大", e);
+            return;
+        }
         while (signal) {
             try {
                 Thread.sleep(waitTime);
@@ -410,13 +428,14 @@ public class RedisReentrantLockDaemon implements Runnable {
         unLockScript.setResultType(Long.class);
         unLockScript.setScriptText(REDIS_EXPIRE_LUA);
         List<String> keys = Collections.singletonList(lockKey);
-        return (Long) RedisManager.executeLuaScript(unLockScript, keys, lockValue, timeOut) == REDIS_EXPIRE_SUCCESS;
+        return Long.valueOf(REDIS_EXPIRE_SUCCESS).equals(
+                RedisManager.executeLuaScript(unLockScript, keys, lockValue, timeOut));
     }
 
     /**
      * 停止守护线程
      */
-    private void stop() {
+    public void stop() {
         this.signal = false;
     }
 }
@@ -473,24 +492,6 @@ public @interface DistributeLock {
 @Component
 public class DistributeLockAspect {
 
-    /**
-     * 初次重试间隔时间
-     */
-    private static final long RETRY_TIME = 1000;
-
-    /**
-     * 重试时间倍数
-     */
-    private static final long RETRY_TIME_MULTIPLE = 2;
-
-    /**
-     * 注解切点
-     */
-    @Pointcut()
-    public void pointCut() {
-
-    }
-
     @Around("@annotation(cn.github.zeroclian.distributedlock.annotation.DistributeLock)")
     public Object distributeLockAroundAop(ProceedingJoinPoint joinPoint) throws Throwable {
         // 获取注解
@@ -510,18 +511,30 @@ public class DistributeLockAspect {
         // 初始化守护线程
         RedisReentrantLockDaemon daemon = new RedisReentrantLockDaemon(lockKey, lockValue, timeOut);
         Thread daemonThread = new Thread(daemon);
+        boolean acquired = false;
         try {
             lock.lock();
+            acquired = true;
             daemonThread.setDaemon(Boolean.TRUE);
             daemonThread.start();
             return joinPoint.proceed();
         } finally {
+            daemon.stop();
             daemonThread.interrupt();
-            lock.unlock();
+            if (acquired) {
+                lock.unlock();
+            }
         }
     }
 }
 ```
+
+### 实际使用前的检查项
+
+- `RedisManager.setIfAbsent` 的超时单位必须与注解约定的秒一致；如果底层 API 使用毫秒，应显式转换，避免锁立即过期或长期占用。
+- 续期脚本只会在锁值仍匹配时延长 TTL，业务代码仍应设置最大执行时长，并在关键写操作中使用 fencing token 或幂等校验。
+- Redis 主从故障切换、网络分区和客户端暂停都可能让锁失效；不要把这段教学实现当作跨故障域的一致性保证。
+- Spring AOP 同类内部调用会绕过代理；需要加锁的方法应从代理对象进入，或改用显式锁服务。
 
 五、相关策略类
 

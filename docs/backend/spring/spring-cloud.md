@@ -7,6 +7,8 @@ description: Spring Cloud 中的 Nacos 配置中心与 Gateway 网关集成。
 
 按微服务基础设施归并注册配置中心和网关的接入步骤。
 
+> 示例使用 Spring Boot 2.6.x、Spring Cloud 2021.x 和 Spring Cloud Alibaba 2021.x 的组合。升级到 Boot 3 时必须同步选择兼容的 Spring Cloud/Alibaba 版本，并将 `javax` API 迁移到 `jakarta`。
+
 ## Nacos
 
 ### 父pom引入依赖
@@ -145,12 +147,18 @@ public class ConfigController {
     <artifactId>spring-cloud-starter-gateway</artifactId>
 </dependency>
 ```
-2. 注册到Eureka
-  
- - 和[整合Maven](./project-setup.html)
- 中的客户端一致
+2. 如果 Gateway 也注册到 Eureka，请按[项目搭建与工程配置](./project-setup.html)中的 Eureka 客户端配置接入；较新的 Spring Cloud Netflix 客户端通常由 starter 自动注册。
 
- 3. 路由转发
+使用 `lb://` 路由时还应确认项目引入了 Spring Cloud LoadBalancer（Eureka/Nacos starter 是否传递引入取决于版本，必要时显式添加）：
+
+```xml
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-loadbalancer</artifactId>
+</dependency>
+```
+
+3. 路由转发
 
 ```yml
 spring:
@@ -167,3 +175,5 @@ spring:
           filters:
             - StripPrefix=1
 ```
+
+`lb://system` 依赖服务发现和 Spring Cloud LoadBalancer；如果只转发到固定地址，应改为 `http://host:port`，不要把 `lb://` 当作普通 URL 使用。

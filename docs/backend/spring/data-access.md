@@ -17,19 +17,20 @@ description: 在 Spring 项目中集成 MyBatis 和 MyBatis-Plus。
 
 1. 引入依赖
 
-需要先在父 pom 的 dependencyManagement 中引入带版本的依赖
+如果项目使用 Spring Boot 的 BOM，版本可以由 BOM 统一管理；没有 BOM 时再显式指定与 Spring Boot 兼容的版本。
 
 ```xml
 <!--集成 mybatis -->
+<!-- Spring Boot 2.x 示例；Boot 3.x 请选择对应的 starter 和版本矩阵 -->
 <dependency>
     <groupId>org.mybatis.spring.boot</groupId>
     <artifactId>mybatis-spring-boot-starter</artifactId>
     <version>2.2.0</version>
 </dependency>
 <dependency>
-    <groupId>mysql</groupId>
-    <artifactId>mysql-connector-java</artifactId>
-    <version>5.1.49</version>
+    <groupId>com.mysql</groupId>
+    <artifactId>mysql-connector-j</artifactId>
+    <scope>runtime</scope>
 </dependency>
 ```
 
@@ -38,14 +39,16 @@ description: 在 Spring 项目中集成 MyBatis 和 MyBatis-Plus。
 ```yml
 spring:
   datasource:
-    driver-class-name: com.mysql.jdbc.Driver
-    url: jdbc:mysql://localhost:3306//course?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&rewriteBatchedStatements=true
-    username: course
-    password: course
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/course?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&rewriteBatchedStatements=true
+    username: ${DB_USER:course}
+    password: ${DB_PASSWORD:change-me}
 
 mybatis:
   mapper-locations: classpath:/mapper/*.xml
 ```
+
+> `useSSL=false` 仅适合本地开发；生产环境应配置 TLS、密钥管理和最小权限数据库账号。
 
 3. 扫描 Mapper 的两种方式
    1. 在 *Mapper.class 增加注解`@Mapper`
@@ -120,22 +123,22 @@ mybatis:
 ### 引入依赖
 
 ```xml
-<!-- https://mvnrepository.com/artifact/com.baomidou/mybatis-plus-boot-starter -->
+<!-- Boot 2 使用 boot-starter；Boot 3 改为 mybatis-plus-spring-boot3-starter -->
 <dependency>
     <groupId>com.baomidou</groupId>
     <artifactId>mybatis-plus-boot-starter</artifactId>
-    <version>3.2.0</version>
+    <version>${mybatis-plus.version}</version>
 </dependency>
 <dependency>
-    <groupId>mysql</groupId>
-    <artifactId>mysql-connector-java</artifactId>
+    <groupId>com.mysql</groupId>
+    <artifactId>mysql-connector-j</artifactId>
     <scope>runtime</scope>
 </dependency>
 <!-- 引入阿里数据库连接池 -->
 <dependency>
     <groupId>com.alibaba</groupId>
     <artifactId>druid</artifactId>
-    <version>1.1.6</version>
+    <version>${druid.version}</version>
 </dependency>
 
 <dependency>
@@ -155,9 +158,9 @@ mybatis:
     # 数据源配置
     datasource:
       driver-class-name: com.mysql.cj.jdbc.Driver
-      url: jdbc:mysql://localhost:3306/course?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&rewriteBatchedStatements=true
-      username: course
-      password: course
+      url: jdbc:mysql://localhost:3306/course?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&rewriteBatchedStatements=true
+      username: ${DB_USER:course}
+      password: ${DB_PASSWORD:change-me}
       type: com.alibaba.druid.pool.DruidDataSource
   mybatis-plus:
     mapper-locations: classpath:mapper/*.xml
@@ -166,8 +169,10 @@ mybatis:
       db-config:
         #主键类型 AUTO:"数据库ID自增" INPUT:"用户输入ID",ID_WORKER:"全局唯一ID (数字类型唯一ID)", UUID:"全局唯一ID UUID";
         id-type: auto
-        #字段策略 IGNORED:"忽略判断"  NOT_NULL:"非 NULL 判断")  NOT_EMPTY:"非空判断"
-        field-strategy: NOT_EMPTY
+        # 3.5.x 使用 insert/update/where-strategy，避免使用已废弃的 field-strategy
+        insert-strategy: not_null
+        update-strategy: not_null
+        where-strategy: not_null
         #数据库类型
         db-type: MYSQL
     configuration:
@@ -189,21 +194,18 @@ mybatis:
 - 编写配置类
 
   ```java
-  /**
-   * @author ZeroClian
-   * @date 2023-01-05 21:45
-   */
   @Configuration
   public class MybatisPlusConfig {
-      /**
-       * 分页插件
-       */
       @Bean
-      public PaginationInterceptor paginationInterceptor() {
-          return new PaginationInterceptor();
+      public MybatisPlusInterceptor mybatisPlusInterceptor() {
+          MybatisPlusInterceptor interceptor = new MybatisPlusInterceptor();
+          interceptor.addInnerInterceptor(new PaginationInnerInterceptor(DbType.MYSQL));
+          return interceptor;
       }
   }
   ```
+
+  > 需要导入 `MybatisPlusInterceptor`、`PaginationInnerInterceptor` 和 `DbType`。MyBatis-Plus 3.5.x 已不再使用旧版 `PaginationInterceptor`。
 
 - 使用代码示例
 
@@ -294,7 +296,7 @@ mybatis:
           return userInfoService.list(queryWrapper);
       }
   
-      @GetMapping("/page")
+      @PostMapping("/page")
       public IPage<UserInfo> getUserInfoPage(@RequestBody PageQuery query) {
           IPage<UserInfo> page = new Page<>();
           page.setCurrent(query.page);
@@ -302,7 +304,7 @@ mybatis:
           return userInfoService.page(page);
       }
   
-      @PostMapping("/page")
+      @PostMapping("/page/query")
       public IPage<UserInfo> getUserInfoPageByQuery(@RequestBody PageQuery query) {
           IPage<UserInfo> page = new Page<>();
           page.setCurrent(query.page);

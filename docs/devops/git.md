@@ -10,16 +10,18 @@ description: Git 仓库、分支、SSH 与网络连接常见操作。
 ## 创建仓库
 命令|含义
 ---|---
-git init | 初始化仓库
-git clone | 拷贝一份远程仓库
-git add . | 添加文件到暂存区
-git commit | 将暂存区内容添加到仓库中
+`git init` | 初始化仓库
+`git clone <url>` | 克隆远程仓库
+`git add -p` | 逐块确认并添加文件到暂存区，避免把密钥等无关文件一起提交
+`git commit -m "message"` | 将暂存区内容提交到仓库
 
 ## 分支
 
-`git pull origin --tags`：拉去远程分支合并到本地
+`git fetch --all --prune`：获取所有远程更新并清理已删除的远程分支
 
-`git push [variable name] [branch]`：将指定分支上的提交发送到远程代码库
+`git pull --rebase origin main`：获取并以 rebase 方式整合远程 main 分支
+
+`git push <remote> <branch>`：将指定分支上的提交发送到远程代码库
 
 
 ## 修改上传方式
@@ -37,11 +39,13 @@ git remote set-url origin https://xxx.git
 
 ## Mac 配置SSH 后 仍需要输入密码解决办法
 
-原因:可能是未将 `~/.ssh/id_rsa`添加至钥匙串的管理
+原因可能是 SSH 私钥未加入 macOS 钥匙串。新建密钥时优先使用 Ed25519：
 
 ```bash
- ssh-add -K ~/.ssh/id_rsa
+ssh-add --apple-use-keychain ~/.ssh/id_ed25519
 ```
+
+并在 `~/.ssh/config` 中为 GitHub 配置 `UseKeychain yes` 和 `AddKeysToAgent yes`。
 ## 测试连接
 
 ```bash
@@ -50,7 +54,7 @@ ssh -T git@github.com
 
 ## 解决Failed to connect to github.com port 443: Timed out
 
-这个错误大致是说连接到github的时候超时了。那么该怎么解决呢？很简单，这个超时了无非就是你的代理出了点问题，不过好在git上用几个命令就能够很快搞定。
+这个错误表示到 GitHub 的 HTTPS 连接超时，原因可能是网络、代理或防火墙。先确认浏览器和 `curl` 能否访问，再按需清理 Git 的代理配置；不要在不了解来源时复制第三方代理命令。
 
 
 ```bash

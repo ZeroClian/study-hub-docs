@@ -26,7 +26,13 @@ description: PDF 文件转换和辅助工具实现。
     <artifactId>pdfbox</artifactId>
     <version>2.0.28</version>
 </dependency>
+<dependency>
+    <groupId>org.apache.commons</groupId>
+    <artifactId>commons-lang3</artifactId>
+</dependency>
 ```
+
+> 版本号仅为原项目示例。PDF/Office 处理库会持续修复安全问题，实际项目应按安全扫描结果升级到组织批准的版本，并在隔离环境运行 LibreOffice。
 
 ## 核心实现
 
@@ -57,7 +63,7 @@ description: PDF 文件转换和辅助工具实现。
                 .officeHome(officeHome)
                 .build();
         officeManager.start();
-        SpringApplication.getShutdownHandlers().add(() -> {
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             if (officeManager.isRunning()) {
                 try {
                     officeManager.stop();
@@ -65,54 +71,62 @@ description: PDF 文件转换和辅助工具实现。
                     //ignore
                 }
             }
-        });
+        }));
         return LocalConverter.builder().officeManager(officeManager).build();
     }
 ```
 
-通过 `LocalOfficeUtils.getDefaultOfficeHome()` 可以获取到安装好的Libreoffice的路径，使用 `LocalOfficeManager.builder()` 构建 LocalOfficeManager 并启动，`SpringApplication.getShutdownHandlers().add()` 注册一个钩子，在程序关闭的时候结束掉 officeManager 。
+通过 `LocalOfficeUtils.getDefaultOfficeHome()` 可以获取到安装好的 LibreOffice 路径，使用 `LocalOfficeManager.builder()` 构建并启动 `LocalOfficeManager`，再通过 JVM shutdown hook 在程序关闭时停止 officeManager。
 
 ```
-    private void covert(InputStream source, OutputStream target, FileType formType, FileType toType, WaterMark waterMark) throws FileConversionException {
-        DocumentFormat srcType = DefaultDocumentFormatRegistry.getFormatByExtension(formType.name());
+    private void convert(InputStream source, OutputStream target, FileType fromType, FileType toType, WaterMark waterMark) throws FileConversionException {
+        DocumentFormat srcType = DefaultDocumentFormatRegistry.getFormatByExtension(fromType.name());
         DocumentFormat trgType = DefaultDocumentFormatRegistry.getFormatByExtension(toType.name());
         if (srcType == null || trgType == null) {
-            throw new FileConversionException("不支持该文件格式转换: " + formType + "-->" + toType);
+            throw new FileConversionException("不支持该文件格式转换: " + fromType + "-->" + toType);
         }
         try {
             if (waterMark != null) {
                 File tempFile = File.createTempFile("convert-", ".pdf");
-                logger.info("生成临时文件:{}", tempFile);
-                converter.convert(source).as(srcType).to(tempFile).as(trgType).execute();
-                waterMark.add(new FileInputStream(tempFile), target);
-                if (!tempFile.delete()) logger.error("临时文件删除失败:{}", tempFile);
+                try {
+                    logger.info("生成临时文件:{}", tempFile);
+                    converter.convert(source).as(srcType).to(tempFile).as(trgType).execute();
+                    try (InputStream watermarkedSource = new FileInputStream(tempFile)) {
+                        waterMark.add(watermarkedSource, target);
+                    }
+                } finally {
+                    if (!tempFile.delete() && tempFile.exists()) {
+                        logger.warn("临时文件删除失败:{}", tempFile);
+                    }
+                }
             } else {
                 converter.convert(source).as(srcType).to(target).as(trgType).execute();
             }
         } catch (OfficeException | IOException e) {
-            throw new FileConversionException(e.getMessage(), e.getCause());
+            throw new FileConversionException(e.getMessage(), e);
         }
     }
 ```
 使用 `LocalConverter.builder().officeManager(officeManager).build()`返回的 `converter` 进行转换，对于需要加水印的pdf，传入实现WaterMark接口的实现类可以自定义水印。
 
-以文本水印为列：
+以文本水印为例：
 
 ```
     @Override
     public void add(InputStream in, OutputStream out) throws IOException {
         // 加载PDF文件fontSize
-        PDDocument document = PDDocument.load(in);
+        try (PDDocument document = PDDocument.load(in)) {
         document.setAllSecurityToBeRemoved(true);
         // 遍历PDF文件，在每一页加上水印
         for (PDPage page : document.getPages()) {
-            PDPageContentStream stream = new PDPageContentStream(document, page, PDPageContentStream.AppendMode.APPEND, true, true);
+            try (PDPageContentStream stream = new PDPageContentStream(document, page, PDPageContentStream.AppendMode.APPEND, true, true)) {
             // 加载水印字体
             PDFont font = PDType1Font.COURIER_BOLD;
             PDExtendedGraphicsState r = new PDExtendedGraphicsState();
             // 设置透明度
             r.setNonStrokingAlphaConstant(0.2f);
             r.setAlphaSourceFlag(true);
+            stream.saveGraphicsState();
             stream.setGraphicsStateParameters(r);
             // 设置水印字体颜色
             stream.setFont(font, 12);
@@ -132,11 +146,10 @@ description: PDF 文件转换和辅助工具实现。
             // 结束渲染，关闭流
             stream.endText();
             stream.restoreGraphicsState();
-            stream.close();
+            }
         }
         document.save(out);
-        document.close();
-        in.close();
+        }
     }
 ```
 
@@ -156,9 +169,10 @@ public class HttpUtil {
         if (StringUtils.isBlank(extension)) extension = FilenameUtils.getExtension(fileName);
         String fileNameURL = URLEncoder.encode(baseName + "." + extension, StandardCharsets.UTF_8);
         //设置响应类型:传输内容是流，并支持中文
-        response.setContentType("application/octet-stream;charset=UTF-8");
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+        response.setContentType("application/octet-stream");
         //设置响应头信息header，下载时以文件附件下载
-        response.setHeader("Content-disposition", "attachment;filename=" + fileNameURL + ";" + "filename*=utf-8''" + fileNameURL);
+        response.setHeader("Content-Disposition", "attachment; filename*=UTF-8''" + fileNameURL);
     }
 }
 ```
@@ -170,10 +184,10 @@ public class HttpUtil {
 
 ```
     @PostMapping("/convert_new")
-    public void covert_new(@RequestParam("file") MultipartFile file, HttpServletResponse response) {
-        try {
-            InputStream is = file.getInputStream();
-            HttpUtil.responseSetting(file.getOriginalFilename(), "pdf", response);
+    public void convert(@RequestParam("file") MultipartFile file, HttpServletResponse response) {
+        try (InputStream is = file.getInputStream()) {
+            String originalName = StringUtils.defaultIfBlank(file.getOriginalFilename(), "download.docx");
+            HttpUtil.responseSetting(originalName, "pdf", response);
             fileConvertService.word2Pdf(is, response.getOutputStream(), TextWaterMark.Builder().waterMark("Justin"));
         } catch (IOException | FileConversionException e) {
             e.printStackTrace();

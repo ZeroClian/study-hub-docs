@@ -10,11 +10,11 @@ description: Java Stream 聚合、归约、收集器以及 LocalDate 常用方�
 ## Stream
 
 ### 聚合方法
-`count()`：返回Stream中元素的size大小。
+`count()`：返回流中元素的数量，结果类型为 `long`。
 
 `forEach()`：通过内部循环Stream中的所有元素，对每一个元素进行消费，此方法没有返回值。
 
-`forEachOrder()`：和上面方法的效果一样，但是这个可以保持消费顺序，哪怕是在多线程环境下。
+`forEachOrdered()`：在并行流中尽量按流的遇到顺序消费元素，但可能牺牲并行性能；普通 `forEach()` 不保证顺序。
 
 `anyMatch(Predicate predicate)`：这是一个短路操作，通过传入断言参数判断是否有元素能够匹配上断言。
 
@@ -24,7 +24,7 @@ description: Java Stream 聚合、归约、收集器以及 LocalDate 常用方�
 
 `findFirst()`：这是一个短路操作，返回Stream中的第一个元素，Stream可能为空所以返回值用Optional处理。
 
-`findAny()`：这是一个短路操作，返回Stream中的任意一个元素，串型流中一般是第一个元素，Stream可能为空所以返回值用Optional处理。
+`findAny()`：这是一个短路操作，返回流中的任意元素；即使是串行流也不应依赖它返回第一个元素，流可能为空所以返回值用 `Optional` 处理。
 
 ### 归约
 ####  reduce
@@ -43,7 +43,7 @@ Integer reduce = List.of(1, 2, 3).stream().reduce(0, (i1, i2) -> i1 + i2);
 参数为自定义排序规则
 ```java
 Optional<Integer> max = List.of(1, 2, 3).stream().max(Integer::compare);
-Optional<Integer> max = List.of(1, 2, 3).stream().min(Integer::compare);
+Optional<Integer> min = List.of(1, 2, 3).stream().min(Integer::compare);
 ```
 
 ### 收集器
@@ -54,13 +54,13 @@ Optional<Integer> max = List.of(1, 2, 3).stream().min(Integer::compare);
 // toList
 List.of(1, 2, 3).stream().collect(Collectors.toList());
 
-// toUnmodifiableList：集合不可以改变元素
+// toUnmodifiableList：集合结构不可变（元素对象本身仍可能可变）
 List.of(1, 2, 3).stream().collect(Collectors.toUnmodifiableList());
 
 // toSet
 List.of(1, 2, 3).stream().collect(Collectors.toSet());
 
-// toUnmodifiableSet：集合不可以改变元素
+// toUnmodifiableSet：集合结构不可变（元素对象本身仍可能可变）
 List.of(1, 2, 3).stream().collect(Collectors.toUnmodifiableSet());
 
 ```
@@ -69,7 +69,7 @@ List.of(1, 2, 3).stream().collect(Collectors.toUnmodifiableSet());
 ```java
 Map<Integer, User> map = users.stream().collect(Collectors.toMap(User::getUserId, user -> user));
 ```
-toMap() 具有两个参数：
+`toMap()` 的双参数重载需要 key 映射函数和 value 映射函数；如果 key 重复会抛出异常，应使用带 merge 函数的重载或改用分组。
 
 - 第一个参数代表key，它表示你要设置一个Map的`key`，我这里指定的是元素中的`userId`。
 
@@ -82,7 +82,7 @@ toMap() 还有两个伴生方法：
 - `toConcurrentMap()`：返回一个线程安全的Map。
 
 #### 分组
-当key为重复值，并且想分类湿，应该使用groupingBy 而不是toMap。
+当 key 可能重复，并且想分类时，应使用 `groupingBy` 而不是 `toMap`。
 ```java
 Map<Integer, List<Order>> collect = orders.stream().collect(Collectors.groupingBy(Order::getOrderType));
 ```
@@ -114,8 +114,9 @@ String collect = orders.stream().map(Order::getOrderNo).collect(Collectors.joini
 #### sorted
 ```java
 orders.stream().sorted(Comparator.comparing(Order::getName, (x, y) -> {
-                Collator clt = Collator.getInstance(java.util.Locale.CHINA);
-                return clt.compare(x, y);
+    Collator clt = Collator.getInstance(java.util.Locale.CHINA);
+    return clt.compare(x, y);
+})).toList();
 ```
 
 ## 日期
@@ -123,7 +124,7 @@ orders.stream().sorted(Comparator.comparing(Order::getName, (x, y) -> {
 ### LocalDate
 -  LocalDate 转字符串
 ```
-LocatDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
 ```
 -  月底
 

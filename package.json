@@ -8,6 +8,7 @@
     "build": "vuepress build docs",
     "docs:dev": "vuepress dev docs",
     "docs:build": "vuepress build docs",
+    "docs:validate": "node scripts/validate-docs.mjs",
     "docs:clean": "rm -rf docs/.vuepress/.cache docs/.vuepress/.temp docs/.vuepress/dist"
   },
   "devDependencies": {

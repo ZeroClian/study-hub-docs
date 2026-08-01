@@ -10,14 +10,14 @@ description: Docker 安装、镜像、容器、应用部署、Dockerfile 和资�
 ## 完整教程
 
 #### 一、安装
-基于 Centos 7 系统的安装步骤
+以下命令保留了基于 RPM 的历史流程。CentOS 7 已结束生命周期；新环境请先确认发行版、Docker Engine 与内核是否在[官方支持范围](https://docs.docker.com/engine/install/centos/)内，并优先使用受支持的 CentOS Stream 或其他发行版。
 
-1. 系统版本需要3.0以上
- ```bash
+1. 系统版本需要满足当前 Docker Engine 官方支持范围。旧的 CentOS 7 示例仅适用于历史环境；新安装请优先参考官方支持的发行版。
+```bash
 #查看版本
 uname -r
-# 3.10.0-1160.25.1.el7.x86_64
- ```
+# 仅用于确认内核版本；不要据此判断 Docker 一定兼容
+```
 
 2. 卸载旧版本
 ```bash
@@ -31,9 +31,9 @@ sudo yum remove docker \
                   docker-engine
 ```
 
-3. yum 包更新到最新
+3. 更新软件包索引（不要在生产机上无评估地执行全量升级）
 ```bash
-sudo yum update
+sudo yum makecache
 ```
 
 4. 安装需要的软件包，yum-util 提供 yum-config-manager 功能，另外两个是 devicemapper 驱动依赖的
@@ -43,18 +43,19 @@ sudo yum install -y yum-utils device-mapper-persistent-data lvm2
 
 5. 设置 yum 源为阿里云
 ```bash
-sudo yum-config-manager --add-repo http://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
+sudo yum-config-manager --add-repo https://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
 ```
 
 6. 安装 docker
 ```bash
-sudo yum install docker-ce
+sudo yum install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+sudo systemctl enable --now docker
 ```
 
 7. 安装成功，查看版本
 ```bash
 docker -v
-or
+# 或
 docker version
 ```
 
@@ -131,7 +132,7 @@ docker 命令 --help 	   # 帮助命令
 
 `docker images [OPTIONS]`
 
-这些镜像都是存储在 Docker 宿主机的 /var/lib/docker 目录下
+镜像由 Docker 守护进程管理，默认数据根目录通常是 `/var/lib/docker`，实际位置以 `docker info` 的 `Docker Root Dir` 为准。
 
 |    属性    |     含义     |
 | :-: | :-: |
@@ -141,7 +142,7 @@ docker 命令 --help 	   # 帮助命令
 | created | 镜像创建日期 |
 | size | 镜像大小 |
 
-> **删除资源**：`rm -rf /var/lib/docker `
+> **不要直接执行 `rm -rf /var/lib/docker`**：这会删除宿主机上的镜像、容器和卷。清理前先确认数据备份，并优先使用 `docker system prune` 等带确认的 Docker 命令。
 
 ##### 搜索镜像
 
@@ -151,7 +152,7 @@ docker 命令 --help 	   # 帮助命令
 
 |    属性     |                         含义                         |
 | :-: | :-: |
-| name | 仓科名称 |
+| name | 仓库名称 |
 | description | 镜像描述 |
 | stars | 受欢迎程度 |
 | official | 是否官方 |
@@ -184,7 +185,7 @@ docker.io/library/mysql:latest 		  # 真实地址
 # 两者等价
 docker pull mysql
 docker pull docker.io/library/mysql:latest 
-# 下载5.7版本
+# 旧项目兼容：下载 5.7（新项目请固定到仍受支持的版本）
 docker pull mysql:5.7
 ```
 
@@ -201,7 +202,7 @@ docker pull mysql:5.7
 docker rmi -f 镜像id
 # 删除全部的镜像
 docker rmi -f $(docker images -aq)
-docker rmi 'docker images -q'
+docker rmi $(docker images -q)
 ```
 
 ##### 可选项
@@ -232,11 +233,11 @@ docker search mysql --filter=stars=3000
 - 命令：`docker run [options] image`
 |  命令  |                             含义                             |                            备注                            |
 | :-: | :-: | :-: |
-| -i | 表示运行容器 |  |
-| -t | 表示容器启动后会进入其命令行 | 加入 it 两个参数后，容器创建就能登陆进去，即分配一个伪终端 |
+| -i | 保持容器的标准输入（STDIN）打开 | 常与 `-t` 一起用于交互式终端 |
+| -t | 分配一个伪终端（TTY） | 镜像内需要有可用的 shell |
 | --name | 为创建的容器命名 |  |
-| -v | 表示目录映射关系（前者是宿主机目录，后者是映射到宿主机上的目录），可以使用多个 -v 做多个目录或者文件映射 | 最好做目录映射，在宿主机上做修改，然后共享到容器上 |
-| -d | 在 run 后面加上 -d 参数则会创建一个守护式容器在后台运行 | 这样创建容器后不会自动登陆进去容器 |
+| -v | 表示目录映射关系（前者是宿主机目录，后者是容器内目录），可以使用多个 -v 做多个目录或者文件映射 | 最好做目录映射，在宿主机上做修改，然后共享到容器上 |
+| -d | 在 run 后面加上 -d 参数则会创建一个守护式容器在后台运行 | 这样创建容器后不会自动登录进去容器 |
 | -p | 表示端口映射，前者是宿主机端口，后者是容器内的映射端口，可以使用多个 -p 做多个端口映射 | -p 8080:8080 |
 
 1. 交互式方式创建容器
@@ -255,13 +256,13 @@ centos       latest    300e315adb2f   6 months ago   209MB
 
 2. 守护式方式创建容器
 ```shell
-//创建
-docker run -id --name=容器名称 镜像名称:标签
-//登陆
-docker exec -it 容器名称（或容器ID）/bin/bash
+# 创建；后台运行时通常只需要 -d
+docker run -d --name=容器名称 镜像名称:标签
+# 登录（容器内有 bash 时）
+docker exec -it 容器名称（或容器ID） /bin/bash
 ```
 
-> docker run -d 镜像名
+> `docker run -d 镜像名` 只有在镜像默认进程持续运行时才会保持容器运行；否则容器会立即退出。
 >
 > docker 后台运行就必须要有一个前台进程，否则就会自动停止
 
@@ -281,7 +282,7 @@ docker  ps -a -q | xargs docker rm -f	# 删除所有容器
 ##### 查看容器IP地址
 
 - 查看容器运行的各种数据：`docker inspect 容器名称（容器ID）`
-- 直接输出IP地址：`docker inspect --format='{{.NetworkSettings.IPaddress}}' 容器名称（容器ID）`
+- 直接输出 IP 地址：`docker inspect --format='{{.NetworkSettings.IPAddress}}' 容器名称（或容器 ID）`
 
 
 #### 4. 其他常用命令
@@ -289,7 +290,7 @@ docker  ps -a -q | xargs docker rm -f	# 删除所有容器
 ##### 查看日志
 
 ```shell
-docker logs -tf --tail [number] 容器id
+docker logs -tf --tail 100 容器id
 
 # docker logs --help
 ```
@@ -327,9 +328,10 @@ docker attach 容器id 	# 进入正在运行的终端
 在创建容器时，添加 -v 宿主机目录 : 容器目录，如：
 
 ```bash
-docker run -id -v /usr/local/myhtml:/usr/local/myhtml --name=mycentos centos:7
+docker run -d -v /usr/local/myhtml:/usr/local/myhtml --name=mycentos centos:7
 ```
-如果共享的是多级目录，可能会出现权限不足的提示，这是因为 CentOS 7 中的安全模块 selinux 把权限禁掉了，因此需要添加参数 --privileged=true 来解决挂载的目录没用权限的问题。
+> `centos:7` 仅用于兼容旧教程；新项目应选择仍受支持的基础镜像。
+如果共享目录在启用 SELinux 的主机上，优先使用卷标 `:Z`（仅该容器）或 `:z`（多个容器共享），并确保宿主机目录权限正确；`--privileged` 会显著扩大容器权限，不应作为常规修复手段。
 
 #### 5. 总结
 
@@ -339,29 +341,33 @@ docker run -id -v /usr/local/myhtml:/usr/local/myhtml --name=mycentos centos:7
 
 #### 1. MySQL 部署
 
-1. 拉取镜像
+1. 拉取镜像（旧的 `centos/mysql-57-centos7` 已停止维护，示例改用官方 MySQL 镜像）
 ```bash
-docker pull centos/mysql-57-centos7
+docker pull mysql:8.4
 ```
 
 2. 创建容器
 ```bash
-docker run -id --name=tensquare_mysql -p 33306:3306 -e MYSQL_ROOT_PASSWORD=123456 centos/mysql-57-centos7
+docker run -d --name=tensquare_mysql -p 33306:3306 \
+  -e MYSQL_ROOT_PASSWORD=change-me \
+  --restart unless-stopped mysql:8.4
 ```
-`-e` 代表添加环境变量 MYSQL_ROOT_PASSWORD 是 root 用户的登陆密码
+`-e` 代表添加环境变量 MYSQL_ROOT_PASSWORD，是 root 用户的登录密码
 `-p` 代表端口映射
+
+> 示例端口和密码仅用于演示；生产环境应挂载持久化卷、使用密钥管理，并为应用创建最小权限账号。
 
 3. 进入 mysql 容器
 ```bash
 docker exec -it tensquare_mysql /bin/bash
 ```
 
-4. 登陆 mysql
+4. 登录 mysql
 ```bash
 mysql -u root -p
 ```
 
-5. 远程登陆 mysql
+5. 远程登录 mysql
 
    连接宿主机 IP ，指定端口为 33306
 
@@ -369,10 +375,12 @@ mysql -u root -p
 
 #### 2. tomcat部署
 
-1. 拉取镜像：`docker pull tomcat:7-jre7`
+1. 拉取镜像：`docker pull tomcat:10.1-jdk17-temurin`
 1. 创建容器
 ```bash
-docker run -di --name=mytomcat -p 9000:8080 -v /usr/local/webapps:/usr/local/tomcat/webapps tomcat:7-jre7
+docker run -d --name=mytomcat --restart unless-stopped -p 9000:8080 \
+  -v /usr/local/webapps:/usr/local/tomcat/webapps \
+  tomcat:10.1-jdk17-temurin
 ```
 
 
@@ -381,7 +389,7 @@ docker run -di --name=mytomcat -p 9000:8080 -v /usr/local/webapps:/usr/local/tom
 1. 拉取镜像：`docker pull nginx`
 1. 创建容器
 ```bash
-docker run -di --name=mynginx -p 80:80 nginx
+docker run -d --name=mynginx --restart unless-stopped -p 80:80 nginx:stable
 ```
 
 3. 进入并查看配置文件
@@ -399,11 +407,13 @@ conf.d  fastcgi_params  mime.types  modules  nginx.conf  scgi_params  uwsgi_para
 
 #### 4. Redis部署
 
-1. 拉取镜像：`docker pull redis`
+1. 拉取镜像：`docker pull redis:7`
 1. 创建容器
 ```bash
-docker run -di --name=myredis -p 6379:6379 redis
+docker run -d --name=myredis --restart unless-stopped -p 6379:6379 redis:7
 ```
+
+> Redis 容器默认不启用密码认证。不要直接把 6379 暴露到公网；生产环境应配置认证、网络隔离和持久化卷。
 
 
 ### 六、迁移与备份
@@ -441,10 +451,10 @@ Dockerfile 是由一系列命令和参数构成的脚本，这些命令应用于
 | 命令 | 作用 |
 | :---: | :---: |
 | FROM image_name:tag | 定义了使用哪个基础镜像启动构建流程 |
-| MAINTAINER user_name | 声明镜像的创建者 |
+| LABEL org.opencontainers.image.authors="user_name" | 声明镜像元数据（`MAINTAINER` 已废弃） |
 | ENV key value | 设置环境变量（可以写多条） |
 | RUN command | 是 Dockerfile 的核心部分（可以写多条） |
-| ADD source_dir/file dest_dir/file | 将宿主机的文件复制到容器内，如果是一个压缩文件，将会在复制完成后自动解压 |
+| ADD source_dir/file dest_dir/file | 复制文件；仅在确实需要自动解压本地归档或读取远程 URL 时使用 |
 | COPY source_dir/file dest_dir/file | 和ADD相似，但是不会解压 |
 | WORKDIR path_dir | 设置工作目录 |
 
@@ -454,17 +464,11 @@ Dockerfile 是由一系列命令和参数构成的脚本，这些命令应用于
 
 1. 创建 Dockerfile 文件 `vi Dockerfile`（以 jdk 为例）
 ```bash
-FROM centos:7
-MAINTAINER ZeroClian
-#切换工作目录
-WORKDIR /usr
-RUN mkdir /usr/local/java
-ADD jdk......gz /usr/local/java/
-#配置Java环境变量
-ENV JAVA_HOME /usr/local/java/jdkxxxxx
-ENV JRE_HOME $JAVA_HOME/jre
-ENV CLASSPATH $JAVA_HOME/bin/dt.jar:$JAVA_HOME/lib/tools.jar:$JRE_HOME/lib:$CLASSPATH
-ENV PATH $JAVA_HOME/bin/:$PATH
+FROM eclipse-temurin:8-jdk
+LABEL org.opencontainers.image.authors="ZeroClian"
+WORKDIR /app
+COPY target/app.jar /app/app.jar
+ENTRYPOINT ["java", "-jar", "/app/app.jar"]
 ```
 
 2. 构建命令：`docker build -t='jdk1.8' .`
@@ -481,17 +485,17 @@ ENV PATH $JAVA_HOME/bin/:$PATH
 
 #### 1. 建立私有仓库与配置
 
-1. 拉取私有仓库镜像：`docker pull registry`
-1. 启动私有仓库容器：`docker run -di --name=registry -p 5000:5000 registry`
-1. 打开浏览器输入地址[http://192.168.63.128:5000/v2/_catalog](http://192.168.63.128:5000/v2/_catalog)看到`{"repositories":[]}`表示私有仓库搭建成功并且内容为空
-1. 修改 daemon.json
+1. 拉取私有仓库镜像：`docker pull registry:2`
+1. 启动私有仓库容器：`docker run -d --name=registry --restart unless-stopped -p 5000:5000 registry:2`
+1. 测试环境可访问 `http://127.0.0.1:5000/v2/_catalog`；生产环境应配置 TLS 和认证，不要依赖明文 HTTP。
+1. 若确实是隔离测试环境且使用 HTTP，才在 daemon.json 中配置不安全仓库：
 ```bash
 #修改
 vi /etc/docker/daemon.json
 #添加以下内容，保存退出
-{"insecure-registries":["192.168.63.128:5000"]}
+{"insecure-registries":["127.0.0.1:5000"]}
 ```
-此步用于让 docker 信任私有仓库地址（要加逗号）
+此步用于让 Docker 在隔离测试环境信任 HTTP 私有仓库地址；如果 daemon.json 已有其他配置，需按 JSON 语法合并并重启 Docker。
 
 5. 重启 docker 服务：`systemctl restart docker`
 
@@ -501,21 +505,21 @@ vi /etc/docker/daemon.json
 
 1. 标记此镜像为私有仓库的镜像
 ```bash
-docker tag jdk1.8 192.168.63.128:5000/jdk1.8
+docker tag jdk1.8 127.0.0.1:5000/jdk1.8
 ```
 
 2. 上传标记的镜像
 ```bash
-docker push 192.168.63.128:5000/jdk1.8
+docker push 127.0.0.1:5000/jdk1.8
 ```
 
-- 拉取：`docker pull 192.168.63.128:5000/jdk1.8`
+- 拉取：`docker pull 127.0.0.1:5000/jdk1.8`
 
 ## 精简安装流程
 
 ### Docker
 
-> Linux 内核版本需要3.0以上，通过 uname -r 查看，我的为：3.10.0-1127.19.1.el7.x86_64
+> Linux 内核和发行版需要满足 Docker Engine 官方支持范围；仅凭 `uname -r` 不能判断兼容性。
 > 
 > 官方文档：[Docker](https://docs.docker.com/engine/install/centos/)
 
@@ -539,15 +543,16 @@ sudo yum remove docker \
   2. 设置镜像仓库
 
 ```bash
-yum-config-manager \
+sudo yum-config-manager \
     --add-repo \
-    http://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
+    https://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
 ```
-  3. 更新软件包索引：`yum makecache fast`
+  3. 更新软件包索引：`sudo yum makecache`
   4. 安装
 
 ```bash
-yum install docker-ce docker-ce-cli containerd.io docker-compose-plugin
+sudo yum install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+sudo systemctl enable --now docker
 ```
 
 <img src="https://github.com/ZeroClian/picture/blob/master/img/20230117230456.png?raw=true" style="zoom:40%;" />
@@ -564,7 +569,7 @@ yum install docker-ce docker-ce-cli containerd.io docker-compose-plugin
 
 -it：进入并执行命令
 
-例如： `docker exec -it 容器ID/容器名称 bash`
+例如： `docker exec -it 容器ID或容器名称 bash`（镜像没有 bash 时改用 `sh`）
 
 两者区别
 
@@ -594,7 +599,7 @@ exec 在容器中打开新的终端，并且可以启动新的进程
 > - 希望容器能够自动重启可以设置`--restart=always`；也可以设置为`--restart=on-failure:3`，意思是启动进程退出代码非0，则重启容器，最多重启3次
 >
 > - run 实际是 create 和 start 的组合
-> - stop 、kill 的退出，不会自动重启
+> - `docker stop` 会抑制重启策略，直到手动再次启动；`docker kill` 是否重启取决于容器的 `--restart` 策略。
 
 ### 3.资源限制
 
@@ -606,9 +611,7 @@ exec 在容器中打开新的终端，并且可以启动新的进程
 
 > 默认情况下参数为-1，即没有限制，当指定 -m 而不指定 --memory-swap 时， --memory-swap 默认为 -m 的两倍
 
-`--vm 1`：启动一个工作线程
-
-`--vm-bytes 280m`：每个线程分配280MB内存
+`stress --vm 1 --vm-bytes 280m` 是压力测试工具的参数，不是 `docker run` 的资源限制参数。
 
 - CPU限额
 
@@ -616,8 +619,9 @@ exec 在容器中打开新的终端，并且可以启动新的进程
 
 - Block IO 带宽限额
 
-  Block IO 指的是磁盘的读写
---blkio-weight：相对权重值
+  Block IO 指的是磁盘的读写。
+
+`--blkio-weight`：相对权重值（仅在底层存储驱动支持时生效）
 
 bps：每秒读写的数据量
 

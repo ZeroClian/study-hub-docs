@@ -15,6 +15,8 @@ description: VuePress 自定义域名和七牛云 PicGo 图床配置。
 2. 执行 `pnpm docs:build`，VuePress 会将 `CNAME` 一起复制到 `docs/.vuepress/dist/`。
 3. 如果使用本项目自带的 GitHub Actions，推送到 `main` 后会自动构建并发布；首次使用需要在仓库的 Pages 设置中选择 **GitHub Actions**。
 
+> 自定义域名应使用 HTTPS，并确认 DNS、GitHub Pages 设置和 `CNAME` 内容完全一致。不要把云厂商 AccessKey/SecretKey 写进仓库或截图。
+
 ## 七牛云与 PicGo 图床
 
 ### 七牛云 + PicGO 搭建自己的图床

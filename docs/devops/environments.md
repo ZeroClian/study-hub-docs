@@ -11,17 +11,16 @@ description: JDK、Node.js、Nginx 和 Nacos 的环境安装与常用操作。
 
 ### JDK
 
-1. 上传压缩包至服务器
+1. 上传压缩包至服务器，并创建安装目录：`sudo mkdir -p /usr/local/jdk`
 
-2. 解压：`tar -zxvf jdk-17_linux-x64_bin.tar.gz -C /usr/local/jdk`
+2. 解压：`sudo tar -zxf jdk-17_linux-x64_bin.tar.gz -C /usr/local/jdk`
 
-3. 修改环境变量：`vim /etc/profile`
+3. 推荐单独创建 `/etc/profile.d/java.sh`：
 ```bash
 export JAVA_HOME=/usr/local/jdk/jdk-17.0.5
-export CLASSPATH=$JAVA_HOME/lib/
-export PATH=$JAVA_HOME/bin:$PATH
+export PATH="$JAVA_HOME/bin:$PATH"
 ```
-4. 重新加载环境变量：`source /etc/profile`
+4. 重新加载并确认版本：`source /etc/profile.d/java.sh && java -version`
 
 ![](https://github.com/ZeroClian/picture/blob/master/img/20230117221325.png?raw=true)
 
@@ -36,6 +35,15 @@ pnpm docs:dev
 
 默认访问地址为 `http://localhost:8080/`。
 
+Node.js 项目建议使用 LTS 版本，并使用 Corepack 固定 pnpm：
+
+```bash
+corepack enable
+corepack install --global pnpm@11.0.9
+node --version
+pnpm --version
+```
+
 ## Nginx
 
 ### 卸载
@@ -47,24 +55,13 @@ ps -ef | grep nginx
 2. 停止运行
 
 ```bash
-#查找文件
-find / -name nginx
-#停止
-/usr/local/nginx/sbin/nginx -s stop
+# 停止并禁止开机启动
+sudo systemctl disable --now nginx
 ```
-3. 卸载
-```bash
-rm -rf xxx(查找与出来的与nginx相关的文件)
-```
-- 如果设置了开机自启，需要执行以下命令
-```bash
-chkconfig nginx off
-rm -rf /etc/init.d/nginx
-```
-- yum 指令清理
+3. 使用包管理器卸载（源码安装的 Nginx 请按实际 `--prefix` 清理，不要执行不明确的 `rm -rf`）
 
 ```bash
-yum remove nginx
+sudo yum remove nginx
 ```
 
 ### 安装
@@ -76,15 +73,13 @@ tar zxvf nginx-1.20.2.tar.gz
 2. 安装相关依赖
 
 ```
-yum install -y gcc
-yum install -y pcre pcre-devel
-yum install -y zlib zlib-devel
+sudo yum install -y gcc pcre2 pcre2-devel zlib zlib-devel openssl openssl-devel
 ```
 3. 编译安装
 ```
-./configure --with-http_ssl_module 
-make 
-make install
+./configure --with-http_ssl_module --prefix=/usr/local/nginx
+make -j"$(nproc)"
+sudo make install
 ```
 4. 启动
 
@@ -114,24 +109,32 @@ cd /usr/local/nginx/sbin
 
 ```shell
 #!/bin/bash
+CONTAINER_NAME="nginx"
 case "$1" in
   "reload")
     # 刷新配置
-    sudo docker exec -it <容器名称> bash -c "nginx -s reload"
+    sudo docker exec "$CONTAINER_NAME" nginx -s reload
     ;;
   "test")
     # 检查配置是否正确
-    sudo docker exec -it <容器名称> bash -c "nginx -t"
+    sudo docker exec "$CONTAINER_NAME" nginx -t
     ;;
   *)
     echo "Usage: sh shell.sh [test|reload]"
-exit 1
+    exit 1
     ;;
 esac
 ```
 
 ```bash
-docker run  -p 80:80 --name nginx -v /opt/docker/nginx/nginx.conf:/etc/nginx/nginx.conf -v /opt/docker/nginx/conf.d:/etc/nginx/conf.d -v /opt/docker/nginx/html:/usr/share/nginx/html -v /opt/docker/nginx/logs:/var/log/nginx -d  nginx
+mkdir -p /opt/docker/nginx/{conf.d,html,logs}
+# 先将有效的 nginx.conf 放入该路径，再创建容器
+docker run -d --restart unless-stopped -p 80:80 --name nginx \
+  -v /opt/docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro \
+  -v /opt/docker/nginx/conf.d:/etc/nginx/conf.d:ro \
+  -v /opt/docker/nginx/html:/usr/share/nginx/html:ro \
+  -v /opt/docker/nginx/logs:/var/log/nginx \
+  nginx:stable
 ```
 
 ## Nacos
@@ -139,12 +142,13 @@ docker run  -p 80:80 --name nginx -v /opt/docker/nginx/nginx.conf:/etc/nginx/ngi
 ### Nacos
 
 > 官方文档地址：[Nacos](https://nacos.io/zh-cn/docs/what-is-nacos.html)
-> 注：Nacos的运行需要以至少2C4g60g*3的机器配置下运行。
+> 机器规格取决于实例数、配置量和流量；“2C4G60G × 3”不是 Nacos 的通用硬性要求。集群通常至少 3 个节点，生产部署请按官方容量规划压测。
 
 #### Linux安装
-  - 需要有JDK环境：[安装JDK步骤](/devops/environments.html#jdk)
+  - 需要有 JDK 环境：[安装 JDK 步骤](/devops/environments.html#jdk)
 ```bash
-unzip nacos-server-$version.zip 或者 tar -xvf nacos-server-$version.tar.gz
+unzip nacos-server-$version.zip
+# 或：tar -xzf nacos-server-$version.tar.gz
 cd nacos/bin
 ```
   - 启动：`sh startup.sh -m standalone`
@@ -153,3 +157,5 @@ cd nacos/bin
 ![](https://github.com/ZeroClian/picture/blob/master/img/20230117221703.png?raw=true)
 
   - 访问：`http://ip:8848/nacos/`
+
+Nacos 2.x 还会使用 9848/9849 等 gRPC 端口；如果通过安全组或防火墙访问集群，请按版本文档一并放行对应端口。

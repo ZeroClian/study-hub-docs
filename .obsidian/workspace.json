@@ -4,21 +4,17 @@
     "type": "split",
     "children": [
       {
-        "id": "ae9ba1ffd063b353",
+        "id": "49e28b553e0140d0",
         "type": "tabs",
         "children": [
           {
-            "id": "d8fdab18e9e5459d",
+            "id": "7d3854f1ccadbef9",
             "type": "leaf",
             "state": {
-              "type": "markdown",
-              "state": {
-                "file": "docs/README.md",
-                "mode": "source",
-                "source": false
-              },
+              "type": "empty",
+              "state": {},
               "icon": "lucide-file",
-              "title": "README"
+              "title": "新标签页"
             }
           }
         ]
@@ -99,7 +95,6 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "docs/README.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -118,7 +113,6 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "docs/README.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
@@ -161,7 +155,6 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "docs/README.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
@@ -188,8 +181,15 @@
       "bases:新建数据库": false
     }
   },
-  "active": "a2340b88ffadd710",
+  "active": "7d3854f1ccadbef9",
   "lastOpenFiles": [
+    "docs/fundamentals/software-design.md",
+    "docs/fundamentals",
+    "docs/fundamentals.md",
+    "docs/data/redis/rate-limiting.md",
+    "scripts/validate-docs.mjs",
+    "未命名.md",
+    "docs/README.md",
     "docs/软件设计师/操作系统.md",
     "docs/软件设计师",
     "docs/redis/使用Redis+AOP+注解实现的基于滑动窗口的多维度原子限流方案.md",
@@ -218,13 +218,6 @@
     "docs/backend/java/arraylist.md",
     "docs/backend/wechat-login.md",
     "docs/backend/utilities",
-    "docs/backend/spring",
-    "docs/backend/java",
-    "docs/backend/idea-productivity.md",
-    "docs/backend/design-patterns.md",
-    "docs/backend",
-    "docs/devops/site-operations.md",
-    "docs/devops/linux.md",
-    "docs/devops/git.md"
+    "docs/backend/spring"
   ]
 }

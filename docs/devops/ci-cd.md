@@ -65,7 +65,7 @@ GitHub 提供 Linux、Windows 和 macOS 虚拟机来运行工作流程，或者�
 on: push
 ```
 
-推送或有人创建分支时触发（多事件）
+推送或有人 fork 仓库时触发（多事件）
 
 ```yml
 on: [push, fork]
@@ -176,7 +176,7 @@ jobs:
 jobs:
   build:
     name: build project
-    runs-on: ubuntu-latest//选择了GitHub托管的运行器
+    runs-on: ubuntu-latest # 选择 GitHub 托管的运行器
 ```
 
 若要使用自己的服务器进行运行，需要先将服务器托管到GitHub上，建议仅将自托管运行器用于私有仓库。
@@ -267,7 +267,7 @@ jobs:
 
 - name：标识一个新的脚本
 
-- uses：使用其他工作流文件
+- uses：使用一个 Action；复用工作流时应使用可复用工作流的调用语法
   - with：设置所需参数，具体看该工作流文件的使用说明
 - run：执行脚本
 - env：设置环境变量
@@ -304,10 +304,15 @@ jobs:
 > [https://juejin.cn/post/6844904198824263687](https://juejin.cn/post/6844904198824263687)
 
 ```bash
-docker pull jenkins/jenkins:lts
+docker pull jenkins/jenkins:lts-jdk17
 ```
 ```bash
-docker run --name jenkins -d -v /usr/docker/jenkins_home:/var/jenkins_home -p 8081:8080 -p 50000:50000 jenkins/jenkins:lts
+sudo mkdir -p /usr/docker/jenkins_home
+sudo chown -R 1000:1000 /usr/docker/jenkins_home
+docker run --name jenkins -d --restart unless-stopped \
+  -v /usr/docker/jenkins_home:/var/jenkins_home \
+  -p 8081:8080 -p 50000:50000 \
+  jenkins/jenkins:lts-jdk17
 ```
 ```bash
 docker ps | grep jenkins
@@ -317,15 +322,15 @@ docker logs jenkins
 ```
 ![image.png](https://cdn.nlark.com/yuque/0/2022/png/2577724/1645775817494-b147643c-e12e-485a-93e8-13a9fe71858e.png)
 访问 Jenkins ：http://ip:端口号
-> 阿里云要开放8081端口
+> 云主机安全组只开放确有需要的端口。50000 仅在使用入站 Agent 时开放，且应限制来源；不要直接把 Jenkins 管理端口暴露给公网。
 
 首次登陆需要密码
 ```bash
-//进入jenkins容器
-docker exec -it jenkins bash 
-//查看密码
-cat /var/jenkins_home/secrets/initialAdminPassword 
-// ec7796c2418b466f9b07556d28b155d6
+# 进入 Jenkins 容器
+docker exec -it jenkins bash
+# 查看初始密码
+cat /var/jenkins_home/secrets/initialAdminPassword
+# 输出示例：实际密码每次安装都不同
 ```
 最后安装插件，设置管理员用户。
-> admin admin
+> 不要使用 `admin/admin` 这类弱密码；首次配置时请设置唯一的强密码并妥善保存。

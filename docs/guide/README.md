@@ -7,6 +7,10 @@ description: Study Hub 的分类结构、主题索引与推荐阅读路径。
 
 全部文章按“领域 → 子主题 → 专题文章”三级结构整理。相近的安装记录、概念说明和实战步骤已合并，避免同一主题散落在多个目录。
 
+## 计算机基础
+
+- [软件设计师：计算机基础与软件质量](/fundamentals/software-design.html)
+
 ## Java 后端
 
 ### Java 基础
@@ -36,6 +40,7 @@ description: Study Hub 的分类结构、主题索引与推荐阅读路径。
 - [MySQL 安装、容器化与权限管理](/data/mysql.html)
 - [Redis 持久化、复制与集群基础](/data/redis/fundamentals.html)
 - [基于 Redis 的分布式锁](/data/redis/distributed-lock.html)
+- [Redis + AOP 多维度滑动窗口限流](/data/redis/rate-limiting.html)
 - [Elasticsearch Docker 部署](/data/elasticsearch.html)
 
 ## 前端与桌面端

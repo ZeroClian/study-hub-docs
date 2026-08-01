@@ -55,6 +55,7 @@ writer.save(new FileOutputStream("D:/a.xlsx"));
 ## 需要依赖
 
 ```xml
+<!-- 版本请保持在当前受支持的 POI 安全版本，并统一管理三个 POI 依赖的版本 -->
 <dependency>
     <groupId>org.apache.poi</groupId>
     <artifactId>poi</artifactId>
@@ -202,7 +203,8 @@ writer.save(new FileOutputStream("D:/a.xlsx"));
         * @throws IOException
         */
        public List<T> read(InputStream in) throws IOException {
-           Workbook workbook = WorkbookFactory.create(in);
+        Workbook workbook = WorkbookFactory.create(in);
+        try {
            if (evaluateFormula) {
                this.formulaEvaluator = workbook.getCreationHelper().createFormulaEvaluator();
            }
@@ -222,7 +224,10 @@ writer.save(new FileOutputStream("D:/a.xlsx"));
                    }
                }
            }
-           return list;
+            return list;
+        } finally {
+            workbook.close();
+        }
        }
    
        /**
@@ -234,6 +239,9 @@ writer.save(new FileOutputStream("D:/a.xlsx"));
        public List<String> getSheetHeaders(Sheet sheet) {
            Row row = sheet.getRow(0);
            List<String> headers = new ArrayList<>();
+           if (row == null) {
+               return headers;
+           }
            for (Cell cell : row) {
                String cellValue = cell.getStringCellValue();
                headers.add(cellValue);
@@ -262,7 +270,7 @@ writer.save(new FileOutputStream("D:/a.xlsx"));
                    if (columnIndex >= 0) {
                        Cell cell = row.getCell(columnIndex);
                        if (null != cell) {
-                           isEmpty = setValue(obj, field, cell, ec.dateFormat());
+                           isEmpty = setValue(obj, field, cell, ec.dateFormat()) && isEmpty;
                        }
                    }
                }
@@ -291,22 +299,33 @@ writer.save(new FileOutputStream("D:/a.xlsx"));
                field.set(obj, value);
                return false;
            }
-           //java8 日期、时间
+           // Java 8 日期、时间
            if (Temporal.class.isAssignableFrom(fieldClass)) {
                if (emptyValue) {
                    return true;
                }
-               String cellStr = value.toString();
-               DateTimeFormatter formatter = DateTimeFormatter.ofPattern(dateFormat);
-               if (LocalDateTime.class.isAssignableFrom(fieldClass)) {
-                   field.set(obj, LocalDateTime.parse(cellStr, formatter));
+               if (value instanceof Date date) {
+                   var dateTime = date.toInstant().atZone(java.time.ZoneId.systemDefault());
+                   if (LocalDateTime.class.isAssignableFrom(fieldClass)) {
+                       field.set(obj, dateTime.toLocalDateTime());
+                   } else if (LocalDate.class.isAssignableFrom(fieldClass)) {
+                       field.set(obj, dateTime.toLocalDate());
+                   } else if (OffsetDateTime.class.isAssignableFrom(fieldClass)) {
+                       field.set(obj, dateTime.toOffsetDateTime());
+                   }
+               } else {
+                   String cellStr = value.toString();
+                   String pattern = ObjectUtils.isEmpty(dateFormat) ? "yyyy-MM-dd" : dateFormat;
+                   DateTimeFormatter formatter = DateTimeFormatter.ofPattern(pattern);
+                   if (LocalDateTime.class.isAssignableFrom(fieldClass)) {
+                       field.set(obj, LocalDateTime.parse(cellStr, formatter));
+                   } else if (LocalDate.class.isAssignableFrom(fieldClass)) {
+                       field.set(obj, LocalDate.parse(cellStr, formatter));
+                   } else if (OffsetDateTime.class.isAssignableFrom(fieldClass)) {
+                       field.set(obj, OffsetDateTime.parse(cellStr, formatter));
+                   }
                }
-               if (LocalDate.class.isAssignableFrom(fieldClass)) {
-                   field.set(obj, LocalDate.parse(cellStr, formatter));
-               }
-               if (OffsetDateTime.class.isAssignableFrom(fieldClass)) {
-                   field.set(obj, OffsetDateTime.parse(cellStr, formatter));
-               }
+               return false;
            }
            //java.util.Date
            if (Date.class.isAssignableFrom(fieldClass)) {
@@ -314,7 +333,8 @@ writer.save(new FileOutputStream("D:/a.xlsx"));
                    return true;
                }
                String cellStr = value.toString();
-               SimpleDateFormat format = new SimpleDateFormat(dateFormat);
+               String pattern = ObjectUtils.isEmpty(dateFormat) ? "yyyy-MM-dd" : dateFormat;
+               SimpleDateFormat format = new SimpleDateFormat(pattern);
                Date date = format.parse(cellStr);
                field.set(obj, date);
                return false;
@@ -443,12 +463,15 @@ writer.save(new FileOutputStream("D:/a.xlsx"));
                    Cell cell = row.createCell(entry.getValue().getColumnIndex());
                    Field field = entry.getKey();
                    Header header = fieldHeaderMap.get(field);
+                   field.setAccessible(true);
                    Object cellValue = field.get(obj);
                    String value;
                    if (cellValue instanceof Date date) {
-                       value = DateFormatUtils.format(date, header.getDateFormat());
+                       String pattern = ObjectUtils.isEmpty(header.getDateFormat()) ? "yyyy-MM-dd" : header.getDateFormat();
+                       value = DateFormatUtils.format(date, pattern);
                    } else if (cellValue instanceof Temporal temporal) {
-                       value = DateTimeFormatter.ofPattern(header.getDateFormat()).format(temporal);
+                       String pattern = ObjectUtils.isEmpty(header.getDateFormat()) ? "yyyy-MM-dd" : header.getDateFormat();
+                       value = DateTimeFormatter.ofPattern(pattern).format(temporal);
                    } else {
                        value = Objects.toString(cellValue, "");
                    }
@@ -471,8 +494,9 @@ writer.save(new FileOutputStream("D:/a.xlsx"));
        }
    
        @Override
-       public void close() throws Exception {
-           this.workbook.close();
+    public void close() throws Exception {
+        this.workbook.dispose();
+        this.workbook.close();
        }
    
    }

@@ -32,6 +32,7 @@ copyright: false
 
 ```bash
 pnpm install
+pnpm docs:validate
 pnpm docs:dev
 ```
 

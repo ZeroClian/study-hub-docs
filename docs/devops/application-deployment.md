@@ -16,29 +16,25 @@ description: 前后端分离项目的手动部署与 GitHub Actions 持续发布
 
 基于本项目的所需的环境
 - 前端
-  - node：v16.14.2
-  - pnpm：8.6.9
+  - Node.js：建议使用仍受支持的 LTS 版本（例如 20 或 22）
+  - pnpm：使用项目 `packageManager` 字段指定的版本
 - 后端
-  - jdk：17
-  - maven：Apache Maven 3.8.1
-  - mysql：8.0.28
-  - nacos：2.1.1
-- 服务器：2核4G（最好）
-  - nginx：1.20.2
-  - docker：24.0.7
+  - JDK：17
+  - Maven：使用项目 Wrapper 或与项目兼容的 Maven 版本
+  - MySQL：8.x
+  - Nacos：按 Spring Cloud Alibaba 版本矩阵选择
+- 服务器：2核4G 起步，实际规格按并发和构建任务压测
+  - nginx、Docker：使用发行版仓库或官方渠道当前受支持的版本
 
 
 ### 前端部署
 
 ##### 1. 新建目录
 
-用于存放项目 build 后的资源
+用于存放项目构建后的静态资源
 
 ```
-cd /
-mkdir www
-cd /www
-mkdir html
+sudo mkdir -p /www/html
 ```
 
 ##### 2. 项目构建
@@ -90,7 +86,7 @@ mkdir html
   </build>
   ```
 
-- 在项目目录下执行:`mvn clean` 和 `mvn package`
+- 在项目目录下执行 `./mvnw clean package`（没有 Maven Wrapper 时再使用与项目兼容的 `mvn`）
 
   ![](https://github.com/ZeroClian/picture/blob/master/img/20230116011617.png?raw=true)
   
@@ -103,31 +99,23 @@ mkdir html
 
 ##### 2. 制作基础镜像
 
-因为运行 jar 包需要 jdk 环境，项目使用的是 jdk17，因此需要据此制作一个含有 jdk17 的基础镜像，选用 ubuntu 为基础来进行制作
+运行 JAR 包需要 Java 运行时。项目使用 JDK 17 时，可以直接使用带 JRE 的基础镜像，避免自行下载并维护 JDK 压缩包。
 
 [安装docker](/devops/docker.html)
 
-- 拉取 ubuntu 镜像：`docker pull ubuntu`
-
-- 新建一个 jdk 目录，将 jdk17的安装包copy到目录下
+- 拉取基础运行时镜像：`docker pull eclipse-temurin:17-jre`
 
 - 新建 Dockerfile 文件：`vim Dockerfile`
 
-  ```
-  FROM ubuntu
-  MAINTAINER zeroclian
-  RUN mkdir /usr/local/jdk
-  WORKDIR /usr/local/jdk
-  ADD jdk-17_linux-x64_bin.tar.gz /usr/local/jdk
-  
-  ENV JAVA_HOME /usr/local/jdk/jdk-17.0.5
-  ENV CLASSPATH $JAVA_HOME/lib/
-  ENV PATH $JAVA_HOME/bin:$PATH
+  ```dockerfile
+  FROM eclipse-temurin:17-jre
+  WORKDIR /app
+  ENV TZ=Asia/Shanghai
   ```
 
   ![](https://github.com/ZeroClian/picture/blob/master/img/20230116013123.png?raw=true)
 
-- 在 Dockerfile 文件所在目录执行：`docker build -t jdk17 .`
+- 在 Dockerfile 文件所在目录执行：`docker build -t jdk17 .`（或直接在服务镜像中使用 `eclipse-temurin:17-jre`）
 
   将会生成了一个名为 jdk17 的镜像，使用 `docker images` 查看
   
@@ -135,10 +123,12 @@ mkdir html
 
 - 同样的方式，在上传的cloud-service.jar所在目录下新建 Dockerfile 文件，执行：`docker build -t cloud-service .`
 
-  ```bash
-  FROM jdk17
-  ADD cloud-service.jar /cloud-service.jar
-  ENTRYPOINT ["java","-jar","/cloud-service.jar"]
+  ```dockerfile
+  FROM eclipse-temurin:17-jre
+  WORKDIR /app
+  COPY cloud-service.jar /app/cloud-service.jar
+  ENV TZ=Asia/Shanghai
+  ENTRYPOINT ["java", "-jar", "/app/cloud-service.jar"]
   ```
 
   最后我们会得到三个镜像：
@@ -151,8 +141,8 @@ mkdir html
 - 启动容器，开放端口号
 
   ```bash
-  docker run -di --name=cloud-gateway -p 9999:9999 cloud-gateway
-  docker run -di --name=cloud-service -p 8001:8001 cloud-service
+  docker run -d --restart unless-stopped --name cloud-gateway -p 9999:9999 cloud-gateway
+  docker run -d --restart unless-stopped --name cloud-service -p 8001:8001 cloud-service
   ```
 
   ![](https://github.com/ZeroClian/picture/blob/master/img/20230116014203.png?raw=true)
@@ -163,7 +153,7 @@ mkdir html
 
 > ❗️注意事项❗️
 > - 无法访问时，请检查服务器的安全组是否放开相关端口
-> - cloud-nacos不在需要理会，直接nacos安装即可，不需要使用容器启动
+> - cloud-nacos 不再需要单独打包；是否使用容器运行 Nacos 取决于部署方案和版本矩阵。
 > - 若启动后很快容器就停止了，可能是服务器内存不足，可以自行调整容器
 > - jdk17安装包获取：公众号发送`jdk17`
 
@@ -203,12 +193,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup node
-        uses: actions/setup-node@v3
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
         with:
-          node-version: 16.14.x
+          version: 11.0.9
+      - name: Setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
       - name: install && build
-        run: pnpm install && pnpm run build
+        run: pnpm install --frozen-lockfile && pnpm run build
         
       - name: upload file
         uses: kostyaten/ssh-server-deploy@v4
@@ -220,6 +215,8 @@ jobs:
           scp_source: "./dist"
           scp_target: ${{ secrets.TARGET }}
 ```
+
+> `kostyaten/ssh-server-deploy` 是第三方 Action。生产环境应固定到经过审核的提交或替换为官方维护的部署方案；优先使用 SSH 私钥而不是密码，并确认目标目录权限和 `dist` 上传路径。
 
 #### 验证
 
@@ -234,17 +231,18 @@ jobs:
 
 #### 配置
 
-以sevice模块为例子，在项目下创建Dockerfile文件并编辑
+以 service 模块为例，在项目下创建 Dockerfile 文件并编辑。基础镜像建议固定到受支持的 JRE 版本，不要使用可变的 `latest`。
 
-```
-FROM zeroclian/jdk17
-MAINTAINER ZeroClian
-ADD service/target/cloud-service.jar /cloud-service.jar
-ENTRYPOINT ["java","-jar","/cloud-service.jar"]
+```dockerfile
+FROM eclipse-temurin:17-jre
+WORKDIR /app
+COPY service/target/cloud-service.jar /app/cloud-service.jar
+LABEL org.opencontainers.image.source="https://github.com/ZeroClian/study-hub-docs"
+ENTRYPOINT ["java", "-jar", "/app/cloud-service.jar"]
 ```
 - `FROM`: 拉取基础环境镜像
-- `MAINTAINER`: 添加镜像作者信息
-- `ADD`: 将指定文件复制到镜像的指定位置下
+- `LABEL`: 添加镜像元数据（`MAINTAINER` 已废弃）
+- `COPY`: 将指定文件复制到镜像的指定位置下；无须自动解压时不要用 `ADD`
 - `ENTRYPOINT`: 指定容器启动时运行的命令
 
 
@@ -269,15 +267,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up JDK 17
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           java-version: '17'
-          distribution: 'adopt'
+          distribution: 'temurin'
           cache: 'maven'
       - name: Build with Maven
-        run: mvn clean package -DskipTests=true -Dmaven.javadoc.skip=true -B -V
+        run: ./mvnw -B -V clean verify -Dmaven.javadoc.skip=true
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -286,19 +284,19 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
       - name: Build and Push Service
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: ./service/Dockerfile
           push: true
-          tags: zeroclian/cloud-service:latest
+          tags: zeroclian/cloud-service:${{ github.sha }}
       - name: Build and Push Gateway
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: ./gateway/Dockerfile
           push: true
-          tags: zeroclian/cloud-gateway:latest
+          tags: zeroclian/cloud-gateway:${{ github.sha }}
 
 ```
 
@@ -312,13 +310,17 @@ jobs:
 
 ![](https://cdn.jsdelivr.net/gh/ZeroClian/picture/img/20240128163508.png)
 
-这时只需要在服务器上重新拉取最新的镜像，重新启动容器即可完成项目的更新
+这时只需要在服务器上重新拉取对应提交的镜像，重新启动容器即可完成项目的更新
+
+> 上例使用提交 SHA 作为镜像标签，部署脚本必须接收到与本次构建相同的 `IMAGE_TAG`；不要为了省事改回可变的 `latest`。
 
  ```shell
-  docker pull zeroclian/cloud-gateway
-  docker pull zeroclian/cloud-service
-  docker run -di --name=cloud-gateway -p 9999:9999 zeroclian/cloud-gateway
-  docker run -di --name=cloud-service -p 8001:8001 zeroclian/cloud-service
+  IMAGE_TAG=replace-with-commit-sha
+  docker pull zeroclian/cloud-gateway:${IMAGE_TAG}
+  docker pull zeroclian/cloud-service:${IMAGE_TAG}
+  docker rm -f cloud-gateway cloud-service 2>/dev/null || true
+  docker run -d --restart unless-stopped --name cloud-gateway -p 9999:9999 zeroclian/cloud-gateway:${IMAGE_TAG}
+  docker run -d --restart unless-stopped --name cloud-service -p 8001:8001 zeroclian/cloud-service:${IMAGE_TAG}
   ```
 
 ### 配置解析

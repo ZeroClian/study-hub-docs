@@ -9,7 +9,7 @@ description: 从初始化、插入、删除和扩容过程理解 ArrayList 源�
 
 ## ArrayList源码分析
 
-总所周知，ArrayList的数据结构是基于数组实现，其底层是一个Object数组列表，与我们普通定义的数组不同，它具有动态扩容、数据拷贝等操作。
+众所周知，ArrayList 基于数组实现，底层是一个 Object 数组；与普通数组相比，它提供动态扩容、元素移动和范围检查等操作。
 
 接下来从初始化、插入、删除等源码来分析ArrayList是如何具体实现这些操作的
 
@@ -40,7 +40,7 @@ public ArrayList() {
 }
 ```
 
-从源码可以看出，**EMPTY_ELEMENTDATA**是一个定义好的空对象，当无参或者大小为0时，将会得到一个Object[]的空对象。
+从源码可以看出，`EMPTY_ELEMENTDATA` 和 `DEFAULTCAPACITY_EMPTY_ELEMENTDATA` 都是预置的空数组。指定初始容量 0 时使用前者；无参构造使用后者，并在第一次添加元素时再按默认容量扩容。
 
 常用的构造方式
 
@@ -56,13 +56,13 @@ list.add("c");
 - Arrays.asList 方式
 
 ```java
-ArrayList list = new ArrayList(Arrays.asList("a","b","c"));
+ArrayList<String> list = new ArrayList<>(Arrays.asList("a", "b", "c"));
 ```
 
 - Collections.nCopies 方式
 
 ```java
-ArrayList<String> list = new ArrayList<String>(Collections.nCopies(3,"a"));
+ArrayList<String> list = new ArrayList<>(Collections.nCopies(3, "a"));
 ```
 
 Collections.nCopies 是集合方法中用于生成多少份某个指定元素的方法。
@@ -161,7 +161,7 @@ public E remove(int index) {
 
 > 如果给你一组元素；a、b、c、d、e、f、g，需要你放到 ArrayList 中，但是要求 获取一个元素的时间复杂度都是 O(1)，你怎么处理？
 
-想解决这个问题，就需要知道元素添加到集合中后知道它的位置，而这个位置呢， 其实可以通过哈希值与集合长度与运算，得出存放数据的下标，如下图；
+ArrayList 通过连续数组下标实现按索引访问，`get(index)` 的平均时间复杂度是 O(1)。下面关于“哈希值与数组长度计算下标”的描述属于 HashMap 的寻址方式，不适用于 ArrayList。
 
 ![image-20210421134406953](https://cdn.jsdelivr.net/gh/ZeroClian/picture/img/image-20210421134406953.png)
 

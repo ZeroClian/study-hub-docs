@@ -12,28 +12,28 @@ description: Linux 目录、命令、系统管理、软件、Service 和常见�
 ### 目录结构
 
 ```
--\
-  -\dev 存放抽象硬件
-  -\boot 存放内核与启动文件
-  -\lib  存放系统库文件
-  -\bin  存放二进制文件（可执行命令）
-  -\sbin 存放特权级二进制文件
-  -\usr  存放安装程序（软件默认安装目录）
-  -\var  存放经常变化的文件
-  -\mnt  文件挂载目录（u盘、光驱）
-  -\home 普通用户目录
-  -\root 特权用户目录
-  -\etc  存放配置文件目录
-  -\opt  大型软件存放目录（非强制）
+/
+├── dev    抽象设备文件
+├── boot   内核与启动文件
+├── lib    系统库文件
+├── bin    基本可执行命令
+├── sbin   系统管理命令
+├── usr    大多数用户态程序和数据
+├── var    经常变化的数据（日志、缓存等）
+├── mnt    临时挂载点
+├── home   普通用户目录
+├── root   root 用户目录
+├── etc    配置文件
+└── opt    可选的第三方软件
 ```
 
 ### 常用命令
 
 - 创建文件：`touch hello.txt`
-- 写入内容：`echo Thanks > hello.txt`
+- 写入内容（会覆盖原文件）：`echo Thanks > hello.txt`；追加内容使用 `>>`
 - 查看内容：`cat hello.txt`
-- 复制文件：`cp hello.txt new.txt (-r 递归复制，用于复制文件夹)`
-- 移动文件：`mv hello.txt /home (-f 强制覆盖已存在的目录或文件)`
+- 复制文件：`cp hello.txt new.txt`；复制目录使用 `cp -r source-dir target-dir`
+- 移动文件：`mv hello.txt /home/`；需要覆盖时使用 `mv -f`
 
 #### 用户
 
@@ -58,7 +58,7 @@ description: Linux 目录、命令、系统管理、软件、Service 和常见�
 
 #### 修改文件属性
 
-`chmod 777 文件名`
+优先按最小权限设置，例如文件 `chmod 640 文件名`、目录 `chmod 750 目录名`，确有必要时再授予其他用户权限。
 
 r=4，w=2，x=1，777的每一个数字表示不同的权限相加后的数字，比如777表示所有人都有权限（主、组、其他用户）
 
@@ -66,11 +66,11 @@ r=4，w=2，x=1，777的每一个数字表示不同的权限相加后的数字�
 
 ### 端口
 
-查看端口号：`lsof -i tcp:port`
+查看端口号：`sudo lsof -iTCP:PORT -sTCP:LISTEN`（也可使用 `ss -lntp`）
 
-杀死进程：`kill -9 PID`
+结束进程：先使用 `kill PID`，无响应时再使用 `kill -9 PID`。
 
-开放端口: `firewall-cmd --add-port=3306/tcp --permanent`
+开放端口：`sudo firewall-cmd --add-port=3306/tcp --permanent && sudo firewall-cmd --reload`
 
 > --permanent 永久生效,没有此参数重启后失效
 
@@ -103,7 +103,7 @@ r=4，w=2，x=1，777的每一个数字表示不同的权限相加后的数字�
 
 查看服务是否开机启动：`systemctl is-enabled firewalld.service`
 
-查看已启动的服务列表：`systemctl list-unit-files|grep enabled`
+查看已启用的服务列表：`systemctl list-unit-files | grep enabled`
 
 查看启动失败的服务列表：`systemctl --failed`
 
@@ -160,23 +160,29 @@ yum install unzip zip -y
 
 ### 将Jar包以Service运行
 
-- 切换到service目录：cd /etc/systemd/system
-- 编辑服务文件：vi serviceName.service     
-  - serviceName 是服务名称，根据实际填写
+- 切换到 service 目录：`cd /etc/systemd/system`
+- 编辑服务文件：`sudo vi serviceName.service`
+  - `serviceName` 是服务名称，根据实际填写
 
   ```
   [Unit]
   Description=serviceName.
-  After=syslog.target
-  After=network.target
+  After=network-online.target
+  Wants=network-online.target
 
   [Service]
   Type=simple
 
-  ExecStart=/usr/bin/java -Xmx700m -jar /root/app/xxx.jar > /root/app/xxx.log
+  Environment="JAVA_HOME=/usr/local/jdk/jdk-17.0.5"
+  ExecStart=/usr/local/jdk/jdk-17.0.5/bin/java -Xmx700m -jar /root/app/xxx.jar
 
-  TimeoutStopSec=0
+  Restart=on-failure
+  RestartSec=5
+  TimeoutStopSec=30
   PrivateTmp=true
+
+  StandardOutput=append:/root/app/xxx.log
+  StandardError=append:/root/app/xxx.log
 
   [Install]
   WantedBy=multi-user.target
@@ -194,20 +200,21 @@ yum install unzip zip -y
 
 
 #### 可能出现问题
-问题：/usr/bin/java’: No such file or directory
-发现原因：是/usr/bin/java未创建软链接
+问题：`/usr/bin/java: No such file or directory`
+原因：Java 未安装、`JAVA_HOME` 不正确，或 `/usr/bin/java` 软链接不存在。
 解决方案：
 ```
-[root@loaclhost ~]# echo $JAVA_HOME
+[root@localhost ~]# echo "$JAVA_HOME"
 /usr/local/jdk/jdk-17.0.5
-[root@loaclhost ~]# ln -s -f /usr/local/jdk/jdk-17.0.5/bin/java
+[root@localhost ~]# sudo ln -sfn /usr/local/jdk/jdk-17.0.5/bin/java /usr/bin/java
+[root@localhost ~]# sudo ln -sfn /usr/local/jdk/jdk-17.0.5/bin/javac /usr/bin/javac
 ```
 
 > 建立软连接：`ln -s 原目录 映射目录`
 > 
-> 删除软连接：`sudo rm -rf 映射目录`
+> 删除软连接：`sudo rm -f 映射目录`
 > 
-> 输出：`echo &JAVA_HOME`
+> 输出环境变量：`echo "$JAVA_HOME"`
 
 ## 常见问题
 

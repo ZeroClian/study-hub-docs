@@ -18,14 +18,12 @@ description: Transactional 注解失效的常见场景。
 
 ### 使用在非public方法上
 
-注解，本质上是通过AOP来完成的，`cglib动态代理`会把你当前执行方法的前后加上切面,切面的方法里在我们的方法是非public的时候，会直接返回null，所以当我们把注解加在非public方法上面时，@Transactional注解会失效。
+基于代理的 Spring AOP 只会拦截通过代理对象进入的调用。`@Transactional` 通常应放在 `public` 方法上；`private`、`final` 方法无法被基于子类的代理覆盖，接口代理也只能拦截接口方法。不要把事务方法当作普通方法在同一个类中直接调用，否则会绕过代理。
 
-`cglib动态代理`跟`jdk动态代理`的区别是jdk动态代理通过`反射`的方式来实现动态代理，而cglib使用的是`继承后再通过修改字节码`的方式来实现的。所以在使用cglib动态代理的时候，要求被代理的类不能是final的，因为如果一个类被标记为`final`的时候，我们就无法继承它了。
-
-同样的道理，我们如果一个方法`不是非public`的，我们就无法覆盖这个方法，那就也就无法在这个方法前后添加切面了！*同时这种注解失效的类型编译器也不会报错，编译过程也不会报错，也无法马上注意到注解失效了*，这种情况需要注意一下。
+JDK 动态代理基于接口，CGLIB/Byte Buddy 等子类代理基于继承；具体代理技术由 Spring 版本和配置决定，因此不应把“切面方法返回 null”作为失效原因。
 
 ### rollbackFor 设置问题
-@Transactional注解的默认情况下是只有在`RuntimeException`的情况下才会回滚的,因此**需要保证业务异常类是rollbackFor参数中类的子类就可以**
+`@Transactional` 默认对 `RuntimeException` 和 `Error` 回滚，对受检异常通常不回滚。业务方法可能抛出受检异常时，应显式指定例如 `@Transactional(rollbackFor = Exception.class)`，并确认异常没有被提前捕获。
 
 ### 注解加在方法内部调用的方法中
 一个A类里面分别有两个function，分别是functionA，functionB，在functionA中调用的functionB，functionA中没有声明事务，而在functionB中声明了事务，此时在外部调用functionA时，functionB的事务是不会生效的。

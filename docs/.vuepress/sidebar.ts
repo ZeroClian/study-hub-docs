@@ -15,6 +15,9 @@ const group = (
 
 const sidebar: SidebarOptions = [
   page("知识地图", "/guide/"),
+  group("计算机基础", [
+    page("软件设计师：计算机基础", "/fundamentals/software-design.html"),
+  ]),
   group("Java 后端", [
     group("Java 基础", [
       page("ArrayList 源码分析", "/backend/java/arraylist.html"),
@@ -41,6 +44,7 @@ const sidebar: SidebarOptions = [
     group("Redis", [
       page("持久化、复制与集群", "/data/redis/fundamentals.html"),
       page("分布式锁", "/data/redis/distributed-lock.html"),
+      page("多维度滑动窗口限流", "/data/redis/rate-limiting.html"),
     ]),
     page("Elasticsearch Docker 部署", "/data/elasticsearch.html"),
   ]),
