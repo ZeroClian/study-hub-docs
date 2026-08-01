@@ -183,6 +183,7 @@
   },
   "active": "7d3854f1ccadbef9",
   "lastOpenFiles": [
+    "node_modules/@vuepress",
     "docs/fundamentals/software-design.md",
     "docs/fundamentals",
     "docs/fundamentals.md",
@@ -216,7 +217,6 @@
     "docs/backend/java/data-structures.md",
     "docs/backend/java/concurrency.md",
     "docs/backend/java/arraylist.md",
-    "docs/backend/wechat-login.md",
     "docs/backend/utilities",
     "docs/backend/spring"
   ]
