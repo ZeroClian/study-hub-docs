@@ -38,7 +38,7 @@ const sidebar: SidebarOptions = [
       page("Java Excel 工具类", "/backend/utilities/excel.html"),
       page("Java PDF 工具类", "/backend/utilities/pdf.html"),
     ]),
-  ], true),
+  ]),
   group("数据与中间件", [
     page("MySQL 安装与权限", "/data/mysql.html"),
     group("Redis", [
