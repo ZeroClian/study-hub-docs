@@ -1,0 +1,72 @@
+import type { SidebarItemOptions, SidebarOptions } from "vuepress-theme-hope";
+
+const page = (text: string, link: string): SidebarItemOptions => ({ text, link });
+
+const group = (
+  text: string,
+  children: SidebarItemOptions[],
+  expanded = false,
+): SidebarItemOptions => ({
+  text,
+  children,
+  collapsible: true,
+  expanded,
+});
+
+const sidebar: SidebarOptions = [
+  page("知识地图", "/guide/"),
+  group("计算机基础", [
+    page("软件设计师：计算机基础", "/fundamentals/software-design.html"),
+  ]),
+  group("Java 后端", [
+    group("Java 基础", [
+      page("ArrayList 源码分析", "/backend/java/arraylist.html"),
+      page("链表、栈与队列", "/backend/java/data-structures.html"),
+      page("Java 并发基础", "/backend/java/concurrency.html"),
+      page("Stream 与日期 API", "/backend/java/stream-and-date.html"),
+    ]),
+    group("Spring 生态", [
+      page("项目搭建与工程配置", "/backend/spring/project-setup.html"),
+      page("MyBatis 与 MyBatis-Plus", "/backend/spring/data-access.html"),
+      page("Nacos 与 Gateway", "/backend/spring/spring-cloud.html"),
+      page("事务与 @Transactional", "/backend/spring/transactions.html"),
+    ]),
+    group("设计与实战", [
+      page("策略模式与观察者模式", "/backend/design-patterns.html"),
+      page("IDEA 开发效率", "/backend/idea-productivity.html"),
+      page("微信扫码登录", "/backend/wechat-login.html"),
+      page("Java Excel 工具类", "/backend/utilities/excel.html"),
+      page("Java PDF 工具类", "/backend/utilities/pdf.html"),
+    ]),
+  ]),
+  group("数据与中间件", [
+    page("MySQL 安装与权限", "/data/mysql.html"),
+    group("Redis", [
+      page("持久化、复制与集群", "/data/redis/fundamentals.html"),
+      page("分布式锁", "/data/redis/distributed-lock.html"),
+      page("多维度滑动窗口限流", "/data/redis/rate-limiting.html"),
+    ]),
+    page("Elasticsearch Docker 部署", "/data/elasticsearch.html"),
+  ]),
+  group("前端与桌面端", [
+    page("Vue 3 与 Webpack", "/frontend/vue.html"),
+    page("Electron 项目开发", "/frontend/electron.html"),
+  ]),
+  group("运维与工程化", [
+    group("系统与环境", [
+      page("Linux 基础与故障处理", "/devops/linux.html"),
+      page("Docker 容器实践", "/devops/docker.html"),
+      page("开发与运行环境", "/devops/environments.html"),
+    ]),
+    group("构建、交付与协作", [
+      page("Maven 与 Gradle", "/devops/build-tools.html"),
+      page("GitHub Actions 与 Jenkins", "/devops/ci-cd.html"),
+      page("应用部署与自动发布", "/devops/application-deployment.html"),
+      page("Git 常用命令", "/devops/git.html"),
+      page("域名与图床", "/devops/site-operations.html"),
+    ]),
+  ]),
+  group("通用工具", [page("Markdown 语法速查", "/tools/markdown.html")]),
+];
+
+export default sidebar;
