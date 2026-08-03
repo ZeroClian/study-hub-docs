@@ -64,10 +64,12 @@ description: Study Hub 的分类结构、主题索引与推荐阅读路径。
 - [Git 常用命令与连接排错](/devops/git.html)
 - [站点运维：域名与图床](/devops/site-operations.html)
 
+## AI 与智能体
+
+### 提示词与可靠性
+
+- [AI 智能体提示词校验与可靠性](/ai/agent-prompt-guardrails.html)
+
 ## 通用工具
 
 - [Markdown 语法速查](/tools/markdown.html)
-
-## 后续分类
-
-目前原始文档中没有 AI 相关文章，因此暂不展示空栏目。新增第一篇 AI 笔记时，可按“AI → 模型与提示词 / Agent / RAG / 工程实践”等子主题扩展，保持与现有三级结构一致。

@@ -66,6 +66,11 @@ const sidebar: SidebarOptions = [
       page("域名与图床", "/devops/site-operations.html"),
     ]),
   ]),
+  group("AI 与智能体", [
+    group("提示词与可靠性", [
+      page("智能体提示词校验与可靠性", "/ai/agent-prompt-guardrails.html"),
+    ]),
+  ]),
   group("通用工具", [page("Markdown 语法速查", "/tools/markdown.html")]),
 ];
 
