@@ -142,16 +142,16 @@ public @interface RateLimit {
 ```
 
 #### 属性详解
-+ Dimension：限流维度枚举
-    - GLOBAL：全局限流
-    - IP：IP限流
-    - USER：用户限流
-+ Dimension[]：限流维度数组，支持组合使用
-+ count：窗口内允许的最大请求数（令牌总数）
-+ interval：时间窗口，默认1秒，与TimeUnit配合使用
-+ timeout：超时时间，默认0，不等待
-+ fallback：降级方法名，当限流触发时调用，降级方法需与注解方法在同一个类中，且参数列表一致或无参
-+ TimeUnit：时间单位枚举
++ `Dimension`：限流维度枚举
+    - `GLOBAL`：全局限流
+    - `IP`：IP限流
+    - `USER`：用户限流
++ `Dimension[]`：限流维度数组，支持组合使用
++ `count`：窗口内允许的最大请求数（令牌总数）
++ `interval`：时间窗口，默认1秒，与TimeUnit配合使用
++ `timeout`：超时时间，默认0，不等待
++ `fallback`：降级方法名，当限流触发时调用，降级方法需与注解方法在同一个类中，且参数列表一致或无参
++ `TimeUnit`：时间单位枚举
 
 ### AOP实现
 #### 核心职责
