@@ -54,9 +54,9 @@ H~2~O 是液体。  `H~2~O 是液体。`（下标语法取决于渲染器）
 
 链接: [link](https://www.csdn.net/).
 
-图片: ![Alt](/images/logo.png)
+图片: ![Alt](/images/logo.webp)
 
-缩放图片40%：`<img src="/images/logo.png" style="zoom:40%;" />`
+缩放图片40%：`<img src="/images/logo.webp" style="zoom:40%;" />`
 
 ## 代码
 
