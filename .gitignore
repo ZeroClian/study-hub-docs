@@ -68,3 +68,7 @@ node_modules/
 docs/.vuepress/.cache/
 docs/.vuepress/.temp/
 docs/.vuepress/dist/
+
+### Obsidian ###
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
