@@ -1,6 +1,6 @@
 ---
 home: true
-heroImage: /images/logo.webp
+heroImage: /images/study-hub-logo.webp
 heroAlt: Study Hub logo
 heroText: Study Hub
 tagline: 按知识领域重新整理的个人技术知识库

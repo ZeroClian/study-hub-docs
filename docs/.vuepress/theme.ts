@@ -3,8 +3,8 @@ import sidebar from "./sidebar.js";
 
 export default hopeTheme({
   hostname: "https://zeroclian.cn/",
-  logo: "/images/logo.webp",
-  favicon: "/images/logo.webp",
+  logo: "/images/study-hub-logo.webp",
+  favicon: "/images/study-hub-logo.webp",
   author: {
     name: "ZeroClian",
     url: "https://github.com/ZeroClian",
