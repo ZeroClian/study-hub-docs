@@ -5,7 +5,7 @@ description: 用五层校验围栏降低 AI 智能体的幻觉、跑偏与假成
 
 # AI 智能体提示词校验与可靠性
 
-本文整理自[原始文章](https://gitee.com/qiyisoft001/verify-chain/blob/master/899.71.md)，将内容按“问题 → 校验分层 → 可复制模板 → 验收清单”重新组织。适用于 Codex、Claude Code、PiAgent 等能够调用工具、修改文件或连续执行多步任务的通用智能体。
+文章将内容按“问题 → 校验分层 → 可复制模板 → 验收清单”重新组织。适用于 Codex、Claude Code、PiAgent 等能够调用工具、修改文件或连续执行多步任务的通用智能体。
 
 ## 核心观点
 
