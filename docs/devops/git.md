@@ -101,13 +101,84 @@ ssh-add --apple-use-keychain ~/.ssh/id_ed25519
 ssh -T git@github.com
 ```
 
-## 解决Failed to connect to github.com port 443: Timed out
+## GitHub HTTPS 连接超时与代理排查
 
-这个错误表示到 GitHub 的 HTTPS 连接超时，原因可能是网络、代理或防火墙。先确认浏览器和 `curl` 能否访问，再按需清理 Git 的代理配置；不要在不了解来源时复制第三方代理命令。
+如果出现 `Failed to connect to github.com port 443`、`Recv failure` 或 `Operation timed out`，先区分是 Git 配置、环境代理、本机网络，还是受限执行环境导致。不要在未确认配置来源前直接清理代理。
 
+### 查询代理信息
+
+先查看远程地址，以及 Git 在各配置层级读取到的代理配置：
+
+```bash
+# 查看远程地址
+git remote -v
+
+# 查看仓库、用户和系统 Git 配置中的代理，并显示来源
+git config --show-origin --show-scope --get-regexp '(^|[.])proxy$'
+
+# 分层查询：没有匹配项时命令会返回非 0，可忽略
+git config --local --get-regexp '(^|[.])proxy$'
+git config --global --get-regexp '(^|[.])proxy$'
+git config --system --get-regexp '(^|[.])proxy$'
+```
+
+再检查 Git 配置之外的代理来源：
+
+```bash
+# HTTP_PROXY、HTTPS_PROXY、ALL_PROXY、NO_PROXY 等环境变量
+env | grep -iE '^(http|https|all|no)_proxy='
+
+# macOS 系统代理
+scutil --proxy
+
+# 检查示例本地代理端口是否在监听，按实际端口替换 10809
+lsof -nP -iTCP:10809 -sTCP:LISTEN
+```
+
+不要把包含代理认证信息的完整输出直接贴到聊天或日志中。还可以检查 Git URL 重写规则，排除远程地址被意外替换：
+
+```bash
+git config --show-origin --show-scope --get-regexp '^url\..*\.insteadOf$'
+```
+
+### 验证连接
+
+使用只读命令复现 Git 的远端访问，不会合并或修改工作区：
+
+```bash
+git ls-remote --heads origin
+git fetch --dry-run --tags origin test
+```
+
+如果 Git 和环境变量都没有代理，但普通终端可以访问 GitHub、受限执行环境却失败，问题通常来自执行环境的网络隔离，不应擅自给项目写入代理配置。
+
+### 仅为当前仓库配置 GitHub 代理
+
+确认本机代理可用后，可以只对当前仓库、且只对 GitHub 配置代理。下面以 HTTP 代理 `127.0.0.1:10809` 为例，端口和协议需替换为实际值：
+
+```bash
+git config --local http.https://github.com.proxy http://127.0.0.1:10809
+git config --local --get http.https://github.com.proxy
+
+# 配置后再次验证，不执行合并
+git fetch --dry-run --tags origin test
+```
+
+验证成功后即可重试：
+
+```bash
+git pull --tags origin test
+```
+
+如果不再需要该配置，删除当前仓库的 GitHub 专用代理：
+
+```bash
+git config --local --unset http.https://github.com.proxy
+```
+
+只有确认全局代理配置错误且不再被其他项目使用时，才清理全局配置：
 
 ```bash
 git config --global --unset http.proxy
- 
 git config --global --unset https.proxy
 ```
