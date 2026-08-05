@@ -23,6 +23,55 @@ description: Git 仓库、分支、SSH 与网络连接常见操作。
 
 `git push <remote> <branch>`：将指定分支上的提交发送到远程代码库
 
+## 将指定 commit 移植到另一个分支
+
+`git cherry-pick` 会把指定 commit 的改动应用到当前分支，并创建一个新的 commit。适合将 `master` 上的单个修复或功能提交移植到 `test` 分支。
+
+例如，将 `co3-ui` 的某个 commit 从 `master` 移植到 `test`：
+
+```bash
+cd /path/to/co3-ui
+
+# 确认工作区干净，并查看 master 上的提交
+git status
+git log master --oneline
+
+# 切换并更新 test 分支
+git switch test
+git pull --ff-only origin test
+
+# 将指定 commit 应用到 test
+git cherry-pick <commit-hash>
+
+# 确认无误后推送
+git push origin test
+```
+
+如果目标 commit 还没有同步到本地，先获取远程分支：
+
+```bash
+git fetch origin master test
+```
+
+### 处理冲突
+
+发生冲突时，手动修改冲突文件，保留正确内容，然后继续 cherry-pick：
+
+```bash
+git status
+git add <已解决的文件>
+git cherry-pick --continue
+git push origin test
+```
+
+如果决定放弃本次操作，恢复到 cherry-pick 之前的状态：
+
+```bash
+git cherry-pick --abort
+```
+
+> 注意：目标 commit 可能依赖 `master` 上的其他提交。应用前先查看 `git show <commit-hash>`；如果依赖较多，优先评估是否应该合并分支，而不是单独 cherry-pick。
+
 
 ## 修改上传方式
 1. 查看当前地址
