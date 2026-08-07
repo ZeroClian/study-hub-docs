@@ -72,3 +72,7 @@ docs/.vuepress/dist/
 ### Obsidian ###
 .obsidian/workspace.json
 .obsidian/workspace-mobile.json
+
+### Local automation secrets and runtime ###
+.automation/secrets/
+.automation/runtime/

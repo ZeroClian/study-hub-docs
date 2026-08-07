@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "source": {
+    "repository": "https://github.com/TencentCloud/TencentDB-Agent-Memory",
+    "release": "v2.0.0",
+    "branch": null,
+    "commit": "0aff21a2d9f2b8a0354aaa80a2e586aab4054562"
+  },
+  "learning_goal": "能够使用，并理解到可以二次开发",
+  "generated_at": "2026-08-07T02:23:35Z",
+  "documents": {
+    "README.md": "a06f5b296864055a5822ef217366dddf3b7796cc3ff58754b1854050781e31de",
+    "architecture.md": "67fea27c41ba40548645571bfc7f4abb5460869927696cb74a842e1ca1fd4ab9",
+    "configuration-api.md": "6efdd555baf76af77197c4539c66dd1ba646495f818d1d89554aba74fa2550c3",
+    "core-workflows.md": "b3fc47783d8d93ada886b90617b4c21c93d21cf3d04f0a026adef6f15f33a84d",
+    "overview.md": "a439ab473c023f7a95ee010610b343fef14875d33ed1a49377c66e52b6ee2d89",
+    "quick-start.md": "b7d807bf5062130ce6f5ccd1de175b31d7557710d30a9646a60cdda4f9ef8114",
+    "secondary-development.md": "7e2cf6cce999ca67302f26c1376430cd4761e3e02a88cd473e51ac93cba70f84",
+    "source-guide.md": "8cd46bdf7d4ab76056c4fa6fa32922fc45fd21c118400547ae9369fead6deab0",
+    "troubleshooting.md": "f9f5363ccac86c191b770e453b6fd55e2dbf1c2bb7f969628dbc507b13673031"
+  },
+  "evidence_scope": {
+    "official_sources": [
+      "https://github.com/TencentCloud/TencentDB-Agent-Memory/releases/tag/v2.0.0",
+      "https://github.com/TencentCloud/TencentDB-Agent-Memory/tree/0aff21a2d9f2b8a0354aaa80a2e586aab4054562"
+    ],
+    "deferred_modules": [
+      "assets/ (23 binary image/video files omitted from sparse checkout)",
+      "MemoryProxy/packages/cost-guard (gitlink 15759552068705caecdccb582b5c93cc29a3bd2e; source not present)",
+      "MemoryCore/src/integrations (service-mode private integration dynamically referenced but absent from public Git tree)",
+      "MemoryPanel/web page-by-page UI implementation",
+      "Wiki prompt templates and migration scripts field-by-field internals"
+    ],
+    "runtime_verified": false
+  }
+}

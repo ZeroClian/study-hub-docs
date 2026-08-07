@@ -69,6 +69,11 @@ description: Study Hub 的分类结构、主题索引与推荐阅读路径。
 ### 提示词与可靠性
 
 - [AI 智能体提示词校验与可靠性](/ai/agent-prompt-guardrails.html)
+- [GitHub AI 热门日报](/ai/github-trending/)
+
+## GitHub 项目精读
+
+- [TencentDB Agent Memory：从使用到二次开发](/projects/tencentcloud-tencentdb-agent-memory/)
 
 ## 通用工具
 

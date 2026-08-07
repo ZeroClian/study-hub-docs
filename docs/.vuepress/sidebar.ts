@@ -71,6 +71,19 @@ const sidebar: SidebarOptions = [
       page("智能体提示词校验与可靠性", "/ai/agent-prompt-guardrails.html"),
     ]),
   ]),
+  group("GitHub 项目精读", [
+    group("TencentDB Agent Memory", [
+      page("项目精读首页", "/projects/tencentcloud-tencentdb-agent-memory/"),
+      page("项目概览", "/projects/tencentcloud-tencentdb-agent-memory/overview.html"),
+      page("快速开始", "/projects/tencentcloud-tencentdb-agent-memory/quick-start.html"),
+      page("总体架构", "/projects/tencentcloud-tencentdb-agent-memory/architecture.html"),
+      page("核心工作流", "/projects/tencentcloud-tencentdb-agent-memory/core-workflows.html"),
+      page("配置与 API", "/projects/tencentcloud-tencentdb-agent-memory/configuration-api.html"),
+      page("源码导读", "/projects/tencentcloud-tencentdb-agent-memory/source-guide.html"),
+      page("二次开发指南", "/projects/tencentcloud-tencentdb-agent-memory/secondary-development.html"),
+      page("故障排查", "/projects/tencentcloud-tencentdb-agent-memory/troubleshooting.html"),
+    ]),
+  ]),
   group("通用工具", [page("Markdown 语法速查", "/tools/markdown.html")]),
 ];
 
