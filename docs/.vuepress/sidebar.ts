@@ -52,6 +52,9 @@ const sidebar: SidebarOptions = [
     page("Vue 3 与 Webpack", "/frontend/vue.html"),
     page("Electron 项目开发", "/frontend/electron.html"),
   ]),
+  group("移动端开发", [
+    page("Java 开发者的 Swift 与 SwiftUI", "/mobile/swift-swiftui-for-java-developers.html"),
+  ]),
   group("运维与工程化", [
     group("系统与环境", [
       page("Linux 基础与故障处理", "/devops/linux.html"),
@@ -84,7 +87,10 @@ const sidebar: SidebarOptions = [
       page("故障排查", "/projects/tencentcloud-tencentdb-agent-memory/troubleshooting.html"),
     ]),
   ]),
-  group("通用工具", [page("Markdown 语法速查", "/tools/markdown.html")]),
+  group("通用工具", [
+    page("Markdown 语法速查", "/tools/markdown.html"),
+    page("Postman 自动化测试与压测", "/tools/postman-automation-and-performance-testing.html"),
+  ]),
 ];
 
 export default sidebar;

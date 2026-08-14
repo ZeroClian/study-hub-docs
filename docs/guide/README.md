@@ -48,6 +48,10 @@ description: Study Hub 的分类结构、主题索引与推荐阅读路径。
 - [Vue 3 项目搭建与 Webpack](/frontend/vue.html)
 - [Electron 从入门到项目开发](/frontend/electron.html)
 
+## 移动端开发
+
+- [Java 开发者的 Swift 与 SwiftUI 对照手册](/mobile/swift-swiftui-for-java-developers.html)
+
 ## 运维与工程化
 
 ### 系统与环境
@@ -78,3 +82,4 @@ description: Study Hub 的分类结构、主题索引与推荐阅读路径。
 ## 通用工具
 
 - [Markdown 语法速查](/tools/markdown.html)
+- [Postman 自动化测试与压测实战](/tools/postman-automation-and-performance-testing.html)
