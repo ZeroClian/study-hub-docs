@@ -68,6 +68,7 @@ node_modules/
 docs/.vuepress/.cache/
 docs/.vuepress/.temp/
 docs/.vuepress/dist/
+.worktrees/
 
 ### Obsidian ###
 .obsidian/workspace.json
