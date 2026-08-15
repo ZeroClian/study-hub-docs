@@ -54,6 +54,11 @@ const sidebar: SidebarOptions = [
   ]),
   group("移动端开发", [
     page("Java 开发者的 Swift 与 SwiftUI", "/mobile/swift-swiftui-for-java-developers.html"),
+    group("Mars Health 项目实战", [
+      page("项目专题首页", "/projects/mars-health/"),
+      page("iOS 代码实现", "/projects/mars-health/ios-implementation.html"),
+      page("真实数据接入", "/projects/mars-health/real-data-integration.html"),
+    ]),
   ]),
   group("运维与工程化", [
     group("系统与环境", [

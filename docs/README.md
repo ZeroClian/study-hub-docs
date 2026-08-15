@@ -17,6 +17,8 @@ features:
     details: MySQL、Redis、Elasticsearch 的部署、原理与实践。
   - title: 前端与桌面端
     details: Vue、Webpack 与 Electron 项目开发。
+  - title: 移动端开发
+    details: Swift、SwiftUI、iOS 数据流与 Mars Health 项目实践。
   - title: 运维与工程化
     details: Linux、Docker、环境配置、CI/CD 与应用发布。
   - title: AI 与智能体
@@ -26,7 +28,7 @@ copyright: false
 
 ## 关于 Study Hub
 
-这里是我的个人学习知识库。文章已从原先按技术名分散的目录，重新归纳为 **Java 后端、数据与中间件、前端与桌面端、运维与工程化、AI 与智能体、通用工具** 六个大类；关联度高的短文已经合并为完整主题。
+这里是我的个人学习知识库。文章已从原先按技术名分散的目录，主要归纳为 **Java 后端、数据与中间件、前端与桌面端、移动端开发、运维与工程化、AI 与智能体、通用工具**；关联度高的短文已经合并为完整主题。
 
 第一次访问建议从[知识地图](/guide/)开始，也可以直接使用侧栏按领域查找。
 

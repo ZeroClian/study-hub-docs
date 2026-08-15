@@ -52,6 +52,12 @@ description: Study Hub 的分类结构、主题索引与推荐阅读路径。
 
 - [Java 开发者的 Swift 与 SwiftUI 对照手册](/mobile/swift-swiftui-for-java-developers.html)
 
+### Mars Health 项目实战
+
+1. [项目专题首页](/projects/mars-health/)
+2. [iOS 代码实现详解](/projects/mars-health/ios-implementation.html)
+3. [真实数据接入与迁移](/projects/mars-health/real-data-integration.html)
+
 ## 运维与工程化
 
 ### 系统与环境
