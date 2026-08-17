@@ -92,15 +92,17 @@ docker compose -f docker-compose.yml config --images
 `config --images` 或对固定 tag 的拉取只能用于**候选发现**。候选输出（包括 `RepoDigests`）不构成批准来源，不能因为格式正确就自动提升为生产制品，也不能接受其他 registry/repository 的同形 digest。由独立的已批准变更记录或受控制品清单审核来源、平台、digest 与日期后，操作员才将其三条精确值输入以下默认流程。
 
 ```bash
-set -eu
-set +x
+(
+  set -eu
+  set +x
+  OVERRIDE_TMP=''
+  cleanup() { status=$?; trap - EXIT HUP INT TERM; if [ -n "$OVERRIDE_TMP" ] && ! rm -f -- "$OVERRIDE_TMP"; then status=1; fi; exit "$status"; }
+  trap cleanup EXIT
+  trap 'exit 129' HUP; trap 'exit 130' INT; trap 'exit 143' TERM
 
-printf '%s' 'Approved weishaw/sub2api image from the controlled manifest: ' >&2
-IFS= read -r SUB2API_APPROVED_IMAGE
-printf '%s' 'Approved postgres image from the controlled manifest: ' >&2
-IFS= read -r POSTGRES_APPROVED_IMAGE
-printf '%s' 'Approved redis image from the controlled manifest: ' >&2
-IFS= read -r REDIS_APPROVED_IMAGE
+  printf '%s' 'Approved weishaw/sub2api image from the controlled manifest: ' >&2; IFS= read -r SUB2API_APPROVED_IMAGE
+  printf '%s' 'Approved postgres image from the controlled manifest: ' >&2; IFS= read -r POSTGRES_APPROVED_IMAGE
+  printf '%s' 'Approved redis image from the controlled manifest: ' >&2; IFS= read -r REDIS_APPROVED_IMAGE
 
 require_approved_image() {
   IMAGE_VALUE=$1
@@ -111,21 +113,13 @@ require_approved_image() {
   }
 }
 
-require_approved_image "$SUB2API_APPROVED_IMAGE" 'weishaw/sub2api'
-require_approved_image "$POSTGRES_APPROVED_IMAGE" 'postgres'
-require_approved_image "$REDIS_APPROVED_IMAGE" 'redis'
+  require_approved_image "$SUB2API_APPROVED_IMAGE" 'weishaw/sub2api'
+  require_approved_image "$POSTGRES_APPROVED_IMAGE" 'postgres'
+  require_approved_image "$REDIS_APPROVED_IMAGE" 'redis'
 
-docker pull "$SUB2API_APPROVED_IMAGE"
-docker pull "$POSTGRES_APPROVED_IMAGE"
-docker pull "$REDIS_APPROVED_IMAGE"
-```
-
-这三个变量始终来自外部批准记录而非 `docker image inspect`；拉取只是取得已批准的精确制品。写入覆盖文件时只含公开镜像标识；`.env` 和任何展开配置都不写入、上传或发送给 Agent：
-
-```bash
-umask 077
-OVERRIDE_TMP='docker-compose.override.yml.tmp'
-printf '%s\n' \
+  docker pull "$SUB2API_APPROVED_IMAGE"; docker pull "$POSTGRES_APPROVED_IMAGE"; docker pull "$REDIS_APPROVED_IMAGE"
+  umask 077; OVERRIDE_TMP='docker-compose.override.yml.tmp'
+  printf '%s\n' \
   'services:' \
   '  sub2api:' \
   "    image: ${SUB2API_APPROVED_IMAGE}" \
@@ -133,9 +127,14 @@ printf '%s\n' \
   "    image: ${POSTGRES_APPROVED_IMAGE}" \
   '  redis:' \
   "    image: ${REDIS_APPROVED_IMAGE}" \
-  > "$OVERRIDE_TMP"
-mv "$OVERRIDE_TMP" docker-compose.override.yml
-unset SUB2API_APPROVED_IMAGE POSTGRES_APPROVED_IMAGE REDIS_APPROVED_IMAGE
+    > "$OVERRIDE_TMP"
+  docker compose -f docker-compose.yml -f "$OVERRIDE_TMP" config -q
+  RENDERED_IMAGES="$(docker compose -f docker-compose.yml -f "$OVERRIDE_TMP" config --images)"
+  for APPROVED_IMAGE in "$SUB2API_APPROVED_IMAGE" "$POSTGRES_APPROVED_IMAGE" "$REDIS_APPROVED_IMAGE"; do printf '%s\n' "$RENDERED_IMAGES" | grep -Fx -- "$APPROVED_IMAGE" >/dev/null || exit 1; done
+  [ "$(printf '%s\n' "$RENDERED_IMAGES" | sed '/^$/d' | wc -l | tr -d ' ')" -eq 3 ] || exit 1
+  mv "$OVERRIDE_TMP" docker-compose.override.yml; OVERRIDE_TMP=''
+  unset SUB2API_APPROVED_IMAGE POSTGRES_APPROVED_IMAGE REDIS_APPROVED_IMAGE RENDERED_IMAGES APPROVED_IMAGE
+)
 ```
 
 `推断`：明确 tag 仍可能被重新推送；记录、批准并在 Compose 中使用 digest 才能让后续拉取和启动引用同一制品。PostgreSQL 或 Redis 的任何版本变更仍需要各自的兼容性审阅、备份/恢复证据和批准，不能随应用升级顺带更新。
@@ -311,31 +310,7 @@ allowlist 启用时，上游 URL 必须使用 HTTPS；`SECURITY_URL_ALLOWLIST_AL
 
 默认只作语法和有界镜像检查，绝不将完整、可能含秘密的 `docker compose config` 持久化为 `rendered-compose.yaml`：
 
-```bash
-set -eu
-COMPOSE='docker compose -f docker-compose.yml -f docker-compose.override.yml'
-$COMPOSE config -q
-RENDERED_IMAGES="$($COMPOSE config --images)"
-printf '%s\n' "$RENDERED_IMAGES"
-
-for APPROVED_IMAGE in \
-  'weishaw/sub2api@sha256:<approved-64-hex-digest>' \
-  'postgres@sha256:<approved-64-hex-digest>' \
-  'redis@sha256:<approved-64-hex-digest>'
-do
-  printf '%s\n' "$RENDERED_IMAGES" | grep -Fx -- "$APPROVED_IMAGE" >/dev/null || {
-    printf '%s\n' "Missing or mismatched approved image: $APPROVED_IMAGE" >&2
-    exit 1
-  }
-done
-[ "$(printf '%s\n' "$RENDERED_IMAGES" | sed '/^$/d' | wc -l | tr -d ' ')" -eq 3 ] || {
-  printf '%s\n' 'Expected exactly the three approved runtime image references.' >&2
-  exit 1
-}
-unset RENDERED_IMAGES APPROVED_IMAGE
-```
-
-在该代码块中把三个 `<approved-64-hex-digest>` 替换为变更记录中已批准、且前一步实际解析出的值；任一缺失、不匹配或额外运行制品都必须停止启动。`官方资料`：`docker compose config` 会解析 Compose 模型，适合在启动前检查合并结果。[Docker Compose config](https://docs.docker.com/reference/cli/docker/compose/config/)
+上述单一子 shell 已完成语法、三项精确镜像和恰好三项运行制品检查；本节不要求重新输入或手填 digest。日常只读状态检查可运行 `docker compose -f docker-compose.yml -f docker-compose.override.yml config -q` 和 `config --images`，但不能替代首次部署时已完成的三值比对。`官方资料`：`docker compose config` 会解析 Compose 模型，适合在启动前检查合并结果。[Docker Compose config](https://docs.docker.com/reference/cli/docker/compose/config/)
 
 只有受保护终端中的授权操作员在排障确有必要时，才可以在受限临时文件中审阅全文；不得录屏、上传、粘贴给 Agent 或返回该文件内容。无论普通失败还是 HUP/INT/TERM，EXIT cleanup 都会尝试删除临时文件；清理失败即整体失败：
 

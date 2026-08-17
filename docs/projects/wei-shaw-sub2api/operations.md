@@ -183,22 +183,28 @@ SERVICES="$(docker compose -p "$DRILL_PROJECT" -f "$DRILL_DIR/compose.restore.ym
 VOLUMES="$(docker compose -p "$DRILL_PROJECT" -f "$DRILL_DIR/compose.restore.yml" config --volumes)"
 [ "$VOLUMES" = 'restore_pg_data' ] || { printf '%s\n' 'Restore Compose must contain only restore_pg_data.' >&2; exit 64; }
 EXPECTED_VOLUME="${DRILL_PROJECT}_restore_pg_data"
+POSTGRES_IDS="$(docker ps -aq --filter "label=com.docker.compose.project=$DRILL_PROJECT" --filter 'label=com.docker.compose.service=postgres')"
+[ "$(printf '%s\n' "$POSTGRES_IDS" | sed '/^$/d' | wc -l | tr -d ' ')" -eq 1 ] || { printf '%s\n' 'Expected exactly one postgres container.' >&2; exit 64; }
+POSTGRES_ID="$POSTGRES_IDS"
+CONTAINER_LABELS="$(docker inspect "$POSTGRES_ID" --format '{{ index .Config.Labels "com.docker.compose.project" }} {{ index .Config.Labels "com.docker.compose.service" }}')"
+[ "$CONTAINER_LABELS" = "$DRILL_PROJECT postgres" ] || exit 64
+MOUNT_SOURCE="$(docker inspect "$POSTGRES_ID" --format '{{ range .Mounts }}{{ if eq .Destination "/var/lib/postgresql/data" }}{{ .Source }}{{ "\n" }}{{ end }}{{ end }}')"
+[ "$(printf '%s\n' "$MOUNT_SOURCE" | sed '/^$/d' | wc -l | tr -d ' ')" -eq 1 ] && [ "$MOUNT_SOURCE" = "$EXPECTED_VOLUME" ] || exit 64
 VOLUME_LABELS="$(docker volume inspect "$EXPECTED_VOLUME" --format '{{ index .Labels "com.docker.compose.project" }} {{ index .Labels "com.docker.compose.volume" }}')"
 [ "$VOLUME_LABELS" = "$DRILL_PROJECT restore_pg_data" ] || { printf '%s\n' 'Restore volume labels do not exactly match the drill project.' >&2; exit 64; }
 docker compose -p "$DRILL_PROJECT" -f "$DRILL_DIR/compose.restore.yml" ps -a
 printf 'Verified drill volume: %s\n' "$EXPECTED_VOLUME"
+printf 'Cleanup request manifest: project=%s dir=%s container=%s volume=%s labels=%s\n' "$DRILL_PROJECT" "$DRILL_DIR" "$POSTGRES_ID" "$EXPECTED_VOLUME" "$VOLUME_LABELS"
 ```
 
-只有恢复负责人确认上述输出仅是该已批准的独立项目，并获得清理批准后，才可针对该项目清理命名卷、容器内 dump 副本和演练 `.env`。执行脚本不信任预览结果，会在同一进程中重新校验项目、目录、Compose 模型、精确命名卷与 labels；任一步失败都在任何破坏动作前保持非零：
+Agent 仅能提交上述含精确项目、绝对目录、容器、物理卷和 labels 的待批准清单，然后停止并交接；不得输入自报 token 继续。下方破坏性步骤只由独立获批操作员在受保护会话启动：批准来自执行 Agent 不可写的变更系统或签名清单，操作员先核对外部 `APPROVAL_ID` 和 request manifest 内容。`APPROVAL_ID` 仅为审计字段，不是 shell 授权判据。操作员脚本必须在同一进程重跑上述全部守卫：
 
 ```bash
 (
   set -eu
   DRILL_PROJECT='<recorded-project-name>'
   DRILL_DIR='<recorded-absolute-drill-directory>'
-  printf '%s' 'Approved cleanup reference (approved:<change-record>): ' >&2
-  IFS= read -r CLEANUP_APPROVAL
-  case "$CLEANUP_APPROVAL" in approved:*) ;; *) printf '%s\n' 'Explicit cleanup approval is required.' >&2; exit 64 ;; esac
+  APPROVAL_ID='<externally-verified-approval-id>'
   case "$DRILL_PROJECT" in sub2api-restore-drill-*) ;; *) printf '%s\n' 'Refusing a non-drill project.' >&2; exit 64 ;; esac
   case "$DRILL_DIR" in /*) ;; *) printf '%s\n' 'Use the recorded absolute drill directory.' >&2; exit 64 ;; esac
   test "$(basename "$DRILL_DIR")" = "$DRILL_PROJECT"
@@ -208,10 +214,18 @@ printf 'Verified drill volume: %s\n' "$EXPECTED_VOLUME"
   VOLUMES="$(docker compose -p "$DRILL_PROJECT" -f "$DRILL_DIR/compose.restore.yml" config --volumes)"
   [ "$VOLUMES" = 'restore_pg_data' ] || { printf '%s\n' 'Restore Compose must contain only restore_pg_data.' >&2; exit 64; }
   EXPECTED_VOLUME="${DRILL_PROJECT}_restore_pg_data"
+  POSTGRES_IDS="$(docker ps -aq --filter "label=com.docker.compose.project=$DRILL_PROJECT" --filter 'label=com.docker.compose.service=postgres')"
+  [ "$(printf '%s\n' "$POSTGRES_IDS" | sed '/^$/d' | wc -l | tr -d ' ')" -eq 1 ] || exit 64
+  POSTGRES_ID="$POSTGRES_IDS"
+  CONTAINER_LABELS="$(docker inspect "$POSTGRES_ID" --format '{{ index .Config.Labels "com.docker.compose.project" }} {{ index .Config.Labels "com.docker.compose.service" }}')"
+  [ "$CONTAINER_LABELS" = "$DRILL_PROJECT postgres" ] || exit 64
+  MOUNT_SOURCE="$(docker inspect "$POSTGRES_ID" --format '{{ range .Mounts }}{{ if eq .Destination "/var/lib/postgresql/data" }}{{ .Source }}{{ "\n" }}{{ end }}{{ end }}')"
+  [ "$(printf '%s\n' "$MOUNT_SOURCE" | sed '/^$/d' | wc -l | tr -d ' ')" -eq 1 ] && [ "$MOUNT_SOURCE" = "$EXPECTED_VOLUME" ] || exit 64
   VOLUME_LABELS="$(docker volume inspect "$EXPECTED_VOLUME" --format '{{ index .Labels "com.docker.compose.project" }} {{ index .Labels "com.docker.compose.volume" }}')"
   [ "$VOLUME_LABELS" = "$DRILL_PROJECT restore_pg_data" ] || { printf '%s\n' 'Restore volume labels do not exactly match the drill project.' >&2; exit 64; }
 
-  docker compose -p "$DRILL_PROJECT" -f "$DRILL_DIR/compose.restore.yml" down --volumes
+  docker compose -p "$DRILL_PROJECT" -f "$DRILL_DIR/compose.restore.yml" down
+  docker volume rm "$EXPECTED_VOLUME"
   if docker volume inspect "$EXPECTED_VOLUME" >/dev/null 2>&1; then
     printf '%s\n' 'Expected restore volume still exists after cleanup.' >&2
     exit 1
