@@ -24,15 +24,14 @@ description: 以保全数据为前提，分层诊断 Sub2API 的容器、状态�
 
 ## 只读诊断基线
 
-先采集不含秘密的状态、日志和依赖信号，再决定是否实施修复。所有 Compose 命令同时加载基础文件和覆盖文件：
+先采集不含秘密的状态和依赖信号，再决定是否实施修复。所有 Compose 命令同时加载基础文件和覆盖文件：
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.override.yml ps
-docker compose -f docker-compose.yml -f docker-compose.override.yml logs --tail=200 sub2api
-docker compose -f docker-compose.yml -f docker-compose.override.yml logs --tail=100 postgres
-docker compose -f docker-compose.yml -f docker-compose.override.yml logs --tail=100 redis
 curl --fail --silent --show-error http://127.0.0.1:8080/health
 ```
+
+原始 `docker compose ... logs` 只可由授权操作员在不录屏的受保护终端人工审阅，或先在主机侧以严格 allowlist/redaction 生成最小摘要（时间、容器、事件类别、退出码）后再回传。不得先输出全文再脱敏；发现潜在秘密、token、Cookie、请求体或客户数据时，立即停止采集并轮换已暴露凭据。
 
 `源码确认`：`/health` 仅说明 HTTP 进程存活，不能判定 PostgreSQL、Redis、管理员、API Key 或上游请求已可用。[健康端点](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/backend/internal/server/routes/common.go#L9-L14) 诊断阶段不执行删除数据目录、删除卷或未审阅的重装动作。
 

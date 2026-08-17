@@ -81,25 +81,60 @@ sha256sum docker-compose.yml .env.example > source-files.sha256
 
 ## 固定镜像版本与摘要
 
-`官方资料`：上游目录版 Compose 的应用镜像默认使用 `latest`，属于可变制品。通过覆盖文件将版本固定为本专题的 `0.1.176`。[目录版 Compose](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/deploy/docker-compose.local.yml#L22-L43)
+`官方资料`：上游目录版 Compose 的应用镜像默认使用 `latest`，属于可变制品；其 PostgreSQL 与 Redis 也由 Compose 的镜像引用决定。[目录版 Compose](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/deploy/docker-compose.local.yml#L22-L43) 首次部署必须把 **Sub2API、PostgreSQL、Redis 三个运行制品**都固定为已批准的 `repository@sha256:...`，不能只固定应用 tag，也不能把本文示例误解为已验证的真实 digest。
 
-创建 `docker-compose.override.yml`：
-
-```yaml
-services:
-  sub2api:
-    image: weishaw/sub2api:0.1.176
-```
-
-拉取后记录实际摘要，并在变更记录中保存 tag、摘要和获取日期：
+先从这个固定提交取得的 Compose 文件确认三项当前镜像来源。`config --images` 只输出镜像引用，可作为不含秘密的有界检查；不要运行或回传完整 `docker compose config`：
 
 ```bash
-docker pull weishaw/sub2api:0.1.176
-docker image inspect weishaw/sub2api:0.1.176 \
-  --format '{{index .RepoDigests 0}}'
+docker compose -f docker-compose.yml config --images
 ```
 
-`推断`：明确 tag 比默认 `latest` 更可复现，但 tag 理论上仍可能被重新推送。严格环境应将记录到的 digest 纳入批准制品，并在后续 Compose 覆盖中按 digest 固定。
+由批准的变更记录给出三个已审核 tag；拉取时明确限定这三个制品，解析并记录本主机实际得到的 digest。以下变量的值是待批准的制品标识，不是可直接复制的 digest：
+
+```bash
+set -eu
+set +x
+
+SUB2API_TAGGED_IMAGE='weishaw/sub2api:0.1.176'
+POSTGRES_TAGGED_IMAGE='postgres:18'
+REDIS_TAGGED_IMAGE='redis:8'
+
+docker pull "$SUB2API_TAGGED_IMAGE"
+docker pull "$POSTGRES_TAGGED_IMAGE"
+docker pull "$REDIS_TAGGED_IMAGE"
+
+SUB2API_APPROVED_IMAGE="$(docker image inspect "$SUB2API_TAGGED_IMAGE" --format '{{index .RepoDigests 0}}')"
+POSTGRES_APPROVED_IMAGE="$(docker image inspect "$POSTGRES_TAGGED_IMAGE" --format '{{index .RepoDigests 0}}')"
+REDIS_APPROVED_IMAGE="$(docker image inspect "$REDIS_TAGGED_IMAGE" --format '{{index .RepoDigests 0}}')"
+
+for APPROVED_IMAGE in "$SUB2API_APPROVED_IMAGE" "$POSTGRES_APPROVED_IMAGE" "$REDIS_APPROVED_IMAGE"; do
+  printf '%s\n' "$APPROVED_IMAGE" | grep -Eq '^[^@[:space:]]+@sha256:[0-9a-f]{64}$' || {
+    printf '%s\n' "Could not resolve an immutable image digest." >&2
+    exit 1
+  }
+  printf '%s\n' "$APPROVED_IMAGE"
+done
+```
+
+操作员复核上述三个 digest、记录批准日期与平台后，写入覆盖文件。下面的文件只含公开镜像标识；`.env` 和任何展开配置都不写入、上传或发送给 Agent：
+
+```bash
+umask 077
+OVERRIDE_TMP='docker-compose.override.yml.tmp'
+printf '%s\n' \
+  'services:' \
+  '  sub2api:' \
+  "    image: ${SUB2API_APPROVED_IMAGE}" \
+  '  postgres:' \
+  "    image: ${POSTGRES_APPROVED_IMAGE}" \
+  '  redis:' \
+  "    image: ${REDIS_APPROVED_IMAGE}" \
+  > "$OVERRIDE_TMP"
+mv "$OVERRIDE_TMP" docker-compose.override.yml
+unset SUB2API_APPROVED_IMAGE POSTGRES_APPROVED_IMAGE REDIS_APPROVED_IMAGE
+```
+
+`推断`：明确 tag 仍可能被重新推送；记录、批准并在 Compose 中使用 digest 才能让后续拉取和启动引用同一制品。PostgreSQL 或 Redis 的任何版本变更仍需要各自的兼容性审阅、备份/恢复证据和批准，不能随应用升级顺带更新。
 
 ## 生成并保护配置
 
@@ -251,36 +286,74 @@ allowlist 启用时，上游 URL 必须使用 HTTPS；`SECURITY_URL_ALLOWLIST_AL
 
 ## 渲染 Compose 配置
 
-所有 Compose 命令均显式加载基础文件和覆盖文件，避免遗漏固定镜像或本地覆写：
+所有 Compose 命令均显式加载基础文件和覆盖文件，避免遗漏固定镜像或本地覆写。上方的首次安装流程会在原子替换前执行完整生产预检；只有该预检成功后，才执行下列检查或启动命令。既有部署不要重新运行首次安装的秘密生成步骤。
 
-上方的首次安装流程会在原子替换前执行完整生产预检；只有该预检成功后，才执行下列渲染或启动命令。既有部署不要重新运行首次安装的秘密生成步骤。
+默认只作语法和有界镜像检查，绝不将完整、可能含秘密的 `docker compose config` 持久化为 `rendered-compose.yaml`：
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.override.yml config -q
-docker compose -f docker-compose.yml -f docker-compose.override.yml config --images
-install -m 0600 /dev/null rendered-compose.yaml
-docker compose -f docker-compose.yml -f docker-compose.override.yml config > rendered-compose.yaml
+set -eu
+COMPOSE='docker compose -f docker-compose.yml -f docker-compose.override.yml'
+$COMPOSE config -q
+RENDERED_IMAGES="$($COMPOSE config --images)"
+printf '%s\n' "$RENDERED_IMAGES"
+
+for APPROVED_IMAGE in \
+  'weishaw/sub2api@sha256:<approved-64-hex-digest>' \
+  'postgres@sha256:<approved-64-hex-digest>' \
+  'redis@sha256:<approved-64-hex-digest>'
+do
+  printf '%s\n' "$RENDERED_IMAGES" | grep -Fx -- "$APPROVED_IMAGE" >/dev/null || {
+    printf '%s\n' "Missing or mismatched approved image: $APPROVED_IMAGE" >&2
+    exit 1
+  }
+done
+[ "$(printf '%s\n' "$RENDERED_IMAGES" | sed '/^$/d' | wc -l | tr -d ' ')" -eq 3 ] || {
+  printf '%s\n' 'Expected exactly the three approved runtime image references.' >&2
+  exit 1
+}
+unset RENDERED_IMAGES APPROVED_IMAGE
 ```
 
-`官方资料`：`docker compose config` 会解析 Compose 模型，适合在启动前检查合并结果。[Docker Compose config](https://docs.docker.com/reference/cli/docker/compose/config/)
+在该代码块中把三个 `<approved-64-hex-digest>` 替换为变更记录中已批准、且前一步实际解析出的值；任一缺失、不匹配或额外运行制品都必须停止启动。`官方资料`：`docker compose config` 会解析 Compose 模型，适合在启动前检查合并结果。[Docker Compose config](https://docs.docker.com/reference/cli/docker/compose/config/)
 
-`推断`：`rendered-compose.yaml` 会包含解析后的秘密，因此先以 `0600` 创建文件。它不应提交、上传或放入公开 CI 日志；检查后应依照本地秘密管理策略处理它。
+只有受保护终端中的授权操作员在排障确有必要时，才可以在受限临时文件中审阅全文；不得录屏、上传、粘贴给 Agent 或返回该文件内容。临时文件清理失败即整体失败：
+
+```bash
+(
+  set -eu
+  set +x
+  RENDERED_CONFIG=''
+  cleanup() {
+    status=$?
+    trap - EXIT
+    if [ -n "$RENDERED_CONFIG" ] && ! rm -f -- "$RENDERED_CONFIG"; then
+      status=1
+    fi
+    exit "$status"
+  }
+  trap cleanup EXIT
+  RENDERED_CONFIG="$(mktemp "${TMPDIR:-/tmp}/sub2api-compose.XXXXXX")"
+  chmod 600 "$RENDERED_CONFIG"
+  docker compose -f docker-compose.yml -f docker-compose.override.yml config > "$RENDERED_CONFIG"
+  # Only the authorized operator reviews this local file without recording it.
+)
+```
 
 ## 启动与首次观察
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.override.yml pull
-docker image inspect weishaw/sub2api:0.1.176 \
-  --format '{{index .RepoDigests 0}}'
+docker compose -f docker-compose.yml -f docker-compose.override.yml \
+  pull sub2api postgres redis
 docker compose -f docker-compose.yml -f docker-compose.override.yml up -d
 docker compose -f docker-compose.yml -f docker-compose.override.yml ps
-docker compose -f docker-compose.yml -f docker-compose.override.yml logs --tail=200 sub2api
 curl --fail --silent http://127.0.0.1:8080/health
 docker compose -f docker-compose.yml -f docker-compose.override.yml \
-  exec postgres pg_isready -U sub2api -d sub2api
+  exec -T postgres sh -ec 'pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
 docker compose -f docker-compose.yml -f docker-compose.override.yml \
-  exec redis redis-cli ping
+  exec -T redis redis-cli ping
 ```
+
+原始 `docker compose ... logs` 只可由授权操作员在不录屏的受保护终端人工审阅，或先在主机侧用严格 allowlist/redaction 生成最小摘要（时间、容器、事件类别、退出码）后再返回 Agent。不得先输出全文再脱敏；发现潜在秘密、token、Cookie、请求体或客户数据时，立即停止采集并轮换已暴露凭据。
 
 `源码确认`：Compose 启用 `AUTO_SETUP=true`；首次启动会连接 PostgreSQL/Redis、执行迁移并初始化管理员。管理员密码未显式设置时，程序会生成并记录到日志，因此生产入口公开前应提供受保护的独立初始密码。[部署说明](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/deploy/README.md#L131-L147) [setup.go](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/backend/internal/setup/setup.go#L541-L650)
 

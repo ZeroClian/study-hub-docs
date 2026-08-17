@@ -7,18 +7,18 @@
     "commit": "e803e3851c0a7e222cfadeafad7b8636ab959d11"
   },
   "learning_goal": "能够理解项目，并按可恢复、可验收的方式完成自建",
-  "generated_at": "2026-08-17T14:20:08Z",
+  "generated_at": "2026-08-17T15:15:30Z",
   "documents": {
     "README.md": "4848cf9e7991333adc2b02a9efbdd79f7a50f0ffb46d0e1f1666f593845a0041",
     "overview.md": "d783bdd33f622bc7238d612dfcaa13e6028e1fe51b9d7616bc3910364810a0b1",
     "architecture.md": "f9bc9defec99a8f0e1f73f610f22e5bd5e6a30cfd91199692480cbb146812449",
-    "deployment.md": "dd671d61123cff582f6d472f0a008c9c9097fca6800cf68dff8f4724d4a1adc5",
+    "deployment.md": "149986833b791d3e353c0034553e0731413171ea3b4fb0d33aef795fedf75439",
     "configuration-security.md": "8d6e80ac6041e22db45c5fb7a632b72e9e7ee114de88b9144c21172e62c7ad6d",
-    "first-run-acceptance.md": "2e9948166ce65e71897300350d037a316acd38eb78b43e3c2fe71bcb7d4f397e",
-    "operations.md": "194430daa5875194a9d40af624ff0c9161cf2e07930182c9abca83d0ca5db5ae",
-    "troubleshooting.md": "05a367da45a24cd299cfa7bb8405142d6fc41d422950a1bcfae701a240fff872",
+    "first-run-acceptance.md": "84981011fb2cc552c60201b11230d4fac1ee9b8eade55766e84ea3b50168c6eb",
+    "operations.md": "04b07e10990888d17bf0213ccf6d7729a758e33d3bd4b3444f60f14be9254cd0",
+    "troubleshooting.md": "bf951f36d298c65a87c3babd5f741ce98667066810135c7805e80537396561d1",
     "source-guide.md": "d9a7c2b8a989f32a4e49ed437f868ac89bf4314e52dd85174d835400fabff11f",
-    "agent-runbook.md": "4b031cbb3c5ac568398f6737e6d6e06a6b6bcd631be7449dc2d50a18d89f5291"
+    "agent-runbook.md": "f220c4e679ca4d789b0dd2bde5ed49a3c7c89780ce35b9b9a53e089e51ab6ba5"
   },
   "evidence_scope": {
     "official_sources": [

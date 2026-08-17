@@ -13,11 +13,10 @@ description: 以可恢复备份、隔离演练和固定制品控制 Sub2API 的�
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.override.yml ps
-docker compose -f docker-compose.yml -f docker-compose.override.yml logs --tail=200 sub2api
-docker compose -f docker-compose.yml -f docker-compose.override.yml logs --tail=100 postgres
-docker compose -f docker-compose.yml -f docker-compose.override.yml logs --tail=100 redis
 curl --fail --silent --show-error http://127.0.0.1:8080/health
 ```
+
+原始 `docker compose ... logs` 只可由授权操作员在不录屏的受保护终端人工审阅，或先在主机侧以严格 allowlist/redaction 生成最小摘要（时间、容器、事件类别、退出码）后再回传。不得先输出全文再脱敏；发现潜在秘密、token、Cookie、请求体或客户数据时，立即停止采集并轮换已暴露凭据。
 
 `源码确认`：`/health` 只代表 HTTP 进程活性，不探测 PostgreSQL 或 Redis；Redis 还承担并发、限流和调度辅助状态，因此不能被简单当作无关缓存。[健康端点](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/backend/internal/server/routes/common.go#L9-L14) [Redis 状态职责](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/backend/internal/repository/concurrency_cache.go#L357-L377) [调度缓存](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/backend/internal/repository/scheduler_cache.go#L222-L269)
 
@@ -126,7 +125,7 @@ YAML
   ATTEMPT=1
   while [ "$ATTEMPT" -le 30 ]; do
     if docker compose -p "$DRILL_PROJECT" -f compose.restore.yml \
-      exec -T postgres pg_isready -U sub2api_restore -d sub2api_restore >/dev/null 2>&1; then
+      exec -T postgres sh -ec 'pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"' >/dev/null 2>&1; then
       READY=1
       break
     fi
@@ -135,11 +134,11 @@ YAML
   done
   [ "$READY" -eq 1 ]
   docker compose -p "$DRILL_PROJECT" -f compose.restore.yml \
-    exec -T postgres pg_isready -U sub2api_restore -d sub2api_restore
+    exec -T postgres sh -ec 'pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
 
   INITIAL_TABLE_COUNT="$(docker compose -p "$DRILL_PROJECT" -f compose.restore.yml \
-    exec -T postgres psql -U sub2api_restore -d sub2api_restore -tA \
-    -c "SELECT count(*) FROM pg_catalog.pg_tables WHERE schemaname NOT IN ('pg_catalog', 'information_schema') AND schemaname NOT LIKE 'pg_toast%';")"
+    exec -T postgres sh -ec 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tA -c "$1"' sh \
+    "SELECT count(*) FROM pg_catalog.pg_tables WHERE schemaname NOT IN ('pg_catalog', 'information_schema') AND schemaname NOT LIKE 'pg_toast%';")"
   case "$INITIAL_TABLE_COUNT" in
     ''|*[!0-9]*) printf '%s\n' 'Target table count is not numeric.' >&2; exit 1 ;;
   esac
@@ -151,8 +150,8 @@ YAML
     exec -T postgres sh -ec 'pg_restore --no-owner --no-privileges --single-transaction --exit-on-error -U "$POSTGRES_USER" -d "$POSTGRES_DB" /tmp/source.dump'
 
   RESTORED_TABLE_COUNT="$(docker compose -p "$DRILL_PROJECT" -f compose.restore.yml \
-    exec -T postgres psql -U sub2api_restore -d sub2api_restore -tA \
-    -c "SELECT count(*) FROM pg_catalog.pg_tables WHERE schemaname NOT IN ('pg_catalog', 'information_schema') AND schemaname NOT LIKE 'pg_toast%';")"
+    exec -T postgres sh -ec 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tA -c "$1"' sh \
+    "SELECT count(*) FROM pg_catalog.pg_tables WHERE schemaname NOT IN ('pg_catalog', 'information_schema') AND schemaname NOT LIKE 'pg_toast%';")"
   case "$RESTORED_TABLE_COUNT" in
     ''|*[!0-9]*) printf '%s\n' 'Restored table count is not numeric.' >&2; exit 1 ;;
   esac
@@ -161,9 +160,36 @@ YAML
 )
 ```
 
-预期结果：在 30 秒内就绪、恢复前非系统表数为 `0`，`pg_restore` 成功后非系统表数为正整数。随后以相同固定应用镜像、独立网络和保留的 `TOTP_ENCRYPTION_KEY` 启动隔离应用，抽样核对管理员、2FA、账号、分组、用户、API Key 和用量记录，并运行一次低成本真实请求。`推断`：只有此类演练能证明 dump、配置和应用版本可共同恢复；生产环境不应为了“测试恢复”覆盖现有数据。
+预期结果：在 30 秒内就绪、恢复前非系统表数为 `0`，`pg_restore` 成功后非系统表数为正整数。所有就绪、表计数、恢复和正数断言均由 PostgreSQL 容器内的 `$POSTGRES_USER` 与 `$POSTGRES_DB` 指向同一个隔离数据库。随后以相同固定应用镜像、独立网络和保留的 `TOTP_ENCRYPTION_KEY` 启动隔离应用，抽样核对管理员、2FA、账号、分组、用户、API Key 和用量记录，并运行一次低成本真实请求。`推断`：只有此类演练能证明 dump、配置和应用版本可共同恢复；生产环境不应为了“测试恢复”覆盖现有数据。
 
-失败时保留隔离项目、日志、restore 输出和备份文件，评估迁移版本、配置秘密和备份完整性；不要删除演练卷来掩盖失败。不要在生产上尝试修复性恢复。
+失败时保留隔离项目、最小脱敏日志摘要、restore 输出和备份文件，评估迁移版本、配置秘密和备份完整性；不要删除演练卷来掩盖失败。原始日志适用本页开头的受保护终端/最小摘要规则。不要在生产上尝试修复性恢复。
+
+### 演练副本的保留与批准清理
+
+恢复负责人负责隔离项目的命名卷、容器内 `/tmp/source.dump` 副本、演练目录下的 `.env` 和 `compose.restore.yml`；备份责任人负责原始 `SOURCE_DUMP`。在变更记录中写明负责人、创建时间、复验/取证期限与到期后的处置批准。演练成功后，敏感副本仅保留到批准的最短期限；失败时按事件/调查期限保留，绝不把 `SOURCE_DUMP` 当作演练垃圾删除。
+
+清理前只能做只读解析并人工核对变更记录中的独立项目名、目录与卷，确认它们以 `sub2api-restore-drill-` 开头，且不属于生产项目。以下命令不删除任何资源：
+
+```bash
+DRILL_PROJECT='<recorded-project-name>'
+DRILL_DIR='<recorded-absolute-drill-directory>'
+case "$DRILL_PROJECT" in sub2api-restore-drill-*) ;; *) printf '%s\n' 'Refusing a non-drill project.' >&2; exit 64 ;; esac
+case "$DRILL_DIR" in /*) ;; *) printf '%s\n' 'Use the recorded absolute drill directory.' >&2; exit 64 ;; esac
+test "$(basename "$DRILL_DIR")" = "$DRILL_PROJECT"
+test -f "$DRILL_DIR/compose.restore.yml"
+docker compose -p "$DRILL_PROJECT" -f "$DRILL_DIR/compose.restore.yml" config --volumes
+docker compose -p "$DRILL_PROJECT" -f "$DRILL_DIR/compose.restore.yml" ps -a
+docker volume ls --filter "label=com.docker.compose.project=$DRILL_PROJECT" --format '{{.Name}} {{.Labels}}'
+```
+
+只有恢复负责人确认上述输出仅是该已批准的独立项目，并获得清理批准后，才可针对该项目清理命名卷、容器内 dump 副本和演练 `.env`；任一步失败都保持非零、停止并记录剩余资源：
+
+```bash
+set -eu
+docker compose -p "$DRILL_PROJECT" -f "$DRILL_DIR/compose.restore.yml" down --volumes --remove-orphans
+rm -- "$DRILL_DIR/.env" "$DRILL_DIR/compose.restore.yml"
+rmdir "$DRILL_DIR"
+```
 
 ## 整机迁移
 
@@ -192,17 +218,18 @@ docker compose -f docker-compose.yml -f docker-compose.override.yml ps
 
 ## 固定版本升级
 
-先在受控变更中记录旧 tag/digest、目标 tag/digest、Release 链接和迁移摘要；在审核后的 `docker-compose.override.yml` 中固定**应用**目标制品。PostgreSQL 与 Redis 镜像升级必须有各自固定 digest、兼容性审阅、备份/恢复证据和独立变更批准，不能随应用升级命令附带更新。然后只拉取并重建应用服务：
+先在受控变更中记录旧 tag/digest、目标 tag/digest、Release 链接和迁移摘要；在审核后的 `docker-compose.override.yml` 中保持三个服务均为批准 digest，并只变更已批准的应用制品。PostgreSQL 与 Redis 镜像升级必须有各自固定 digest、兼容性审阅、备份/恢复证据和独立变更批准，不能随应用升级命令附带更新。然后只拉取并重建应用服务：
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.override.yml config -q
 docker compose -f docker-compose.yml -f docker-compose.override.yml pull sub2api
 docker compose -f docker-compose.yml -f docker-compose.override.yml up -d --no-deps sub2api
 docker compose -f docker-compose.yml -f docker-compose.override.yml ps sub2api
-docker compose -f docker-compose.yml -f docker-compose.override.yml logs --tail=200 sub2api
 ```
 
-预期结果：目标镜像已拉取、服务稳定，迁移没有错误。随后重新执行[首次运行与验收](./first-run-acceptance.md)的进程、PostgreSQL、Redis、登录/鉴权、非流式、流式和用量闭环。停止条件：迁移、依赖、登录、流式或记录任一层失败；停止扩大流量并保全证据。
+原始 `docker compose ... logs` 只可由授权操作员在不录屏的受保护终端人工审阅，或先在主机侧以严格 allowlist/redaction 生成最小摘要（时间、容器、事件类别、退出码）后再回传。不得先输出全文再脱敏；发现潜在秘密、token、Cookie、请求体或客户数据时，立即停止采集并轮换已暴露凭据。
+
+预期结果：目标镜像已拉取、服务稳定，最小脱敏摘要没有迁移错误。随后重新执行[首次运行与验收](./first-run-acceptance.md)的进程、PostgreSQL、Redis、登录/鉴权、非流式、流式和用量闭环。停止条件：迁移、依赖、登录、流式或记录任一层失败；停止扩大流量并保全证据。
 
 ## 镜像与数据库回滚
 

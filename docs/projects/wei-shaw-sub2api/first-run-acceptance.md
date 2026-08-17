@@ -11,15 +11,16 @@ description: 以分层证据验证 Sub2API 初始化、依赖、鉴权、真实�
 
 `源码确认`：目录版 Compose 启用 `AUTO_SETUP=true`；应用首次启动会连接 PostgreSQL 和 Redis、执行迁移并初始化管理员。若未设置管理员密码，程序可能把生成的密码写进日志，因此不应以日志中的临时密码作为长期凭据。[部署说明](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/deploy/README.md#L131-L147) [初始化代码](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/backend/internal/setup/setup.go#L541-L650)
 
-动作：启动后只读取状态和初始化日志；不要通过重新创建数据目录来反复触发初始化。
+动作：启动后只读取状态；不要通过重新创建数据目录来反复触发初始化。
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.override.yml up -d
 docker compose -f docker-compose.yml -f docker-compose.override.yml ps
-docker compose -f docker-compose.yml -f docker-compose.override.yml logs --tail=200 sub2api
 ```
 
-预期结果：`sub2api`、`postgres` 与 `redis` 均已启动，日志中没有迁移、数据库连接或 Redis 认证失败；管理员初始化有明确结果。停止条件：任一容器退出、迁移失败、初始化报错，或管理员密码仅存在于不受保护的日志中。停止后保留日志和数据目录，转到[故障排查](./troubleshooting.md)，不要继续公开入口或创建业务对象。
+原始 `docker compose ... logs` 只能由授权操作员在不录屏的受保护终端人工审阅，或先在主机侧以严格 allowlist/redaction 生成最小摘要（时间、容器、事件类别、退出码）后再回传。不得先输出全文再脱敏；发现潜在秘密、token、Cookie、请求体或客户数据时，立即停止采集并轮换已暴露凭据。
+
+预期结果：`sub2api`、`postgres` 与 `redis` 均已启动，最小摘要没有迁移、数据库连接或 Redis 认证失败，且管理员初始化有明确结果。停止条件：任一容器退出、迁移失败、初始化报错，或摘要提示秘密暴露。停止后保留数据目录和最小脱敏证据，转到[故障排查](./troubleshooting.md)，不要继续公开入口或创建业务对象。
 
 ## 首次登录与安全收口
 
@@ -103,11 +104,12 @@ curl --silent --show-error --output /dev/null --write-out '%{http_code}\n' \
   CURL_CONFIG=''
   cleanup() {
     status=$?
+    trap - EXIT
     if [ -n "$CURL_CONFIG" ] && ! rm -f -- "$CURL_CONFIG"; then
-      [ "$status" -ne 0 ] || status=1
+      status=1
     fi
     unset SUB2API_TEST_KEY
-    return "$status"
+    exit "$status"
   }
   trap cleanup EXIT
   trap 'exit 129' HUP
@@ -145,11 +147,12 @@ curl --silent --show-error --output /dev/null --write-out '%{http_code}\n' \
   CURL_CONFIG=''
   cleanup() {
     status=$?
+    trap - EXIT
     if [ -n "$CURL_CONFIG" ] && ! rm -f -- "$CURL_CONFIG"; then
-      [ "$status" -ne 0 ] || status=1
+      status=1
     fi
     unset SUB2API_TEST_KEY
-    return "$status"
+    exit "$status"
   }
   trap cleanup EXIT
   trap 'exit 129' HUP
