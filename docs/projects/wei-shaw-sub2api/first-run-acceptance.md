@@ -98,6 +98,7 @@ curl --silent --show-error --output /dev/null --write-out '%{http_code}\n' \
 
 ```bash
 (
+  set +x
   set -eu
   CURL_CONFIG=''
   cleanup() {
@@ -139,6 +140,7 @@ curl --silent --show-error --output /dev/null --write-out '%{http_code}\n' \
 
 ```bash
 (
+  set +x
   set -eu
   CURL_CONFIG=''
   cleanup() {

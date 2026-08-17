@@ -5,7 +5,7 @@ description: 以可恢复备份、隔离演练和固定制品控制 Sub2API 的�
 
 # 运维、备份与升级
 
-本文基于 Sub2API `v0.1.176`、固定提交 `e803e3851c0a7e222cfadeafad7b8636ab959d11`。`待实践验证`：本文没有替代目标环境的备份、恢复或升级演练。运行命令均同时加载基础 Compose 文件和覆盖文件；首次部署与秘密边界见[Docker Compose 部署](./deployment.md)和[配置与安全](./configuration-security.md)。
+本文基于 Sub2API `v0.1.176`、固定提交 `e803e3851c0a7e222cfadeafad7b8636ab959d11`。`待实践验证`：本文没有替代目标环境的备份、恢复或升级演练。除[恢复演练](#恢复演练)中刻意隔离的独立 Compose 项目外，所有操作**现有部署**的 Compose 命令均同时加载基础 Compose 文件和覆盖文件；首次部署与秘密边界见[Docker Compose 部署](./deployment.md)和[配置与安全](./configuration-security.md)。
 
 ## 日常观察
 
