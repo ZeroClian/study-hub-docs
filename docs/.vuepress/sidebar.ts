@@ -98,7 +98,7 @@ const sidebar: SidebarOptions = [
       page("部署指南", "/projects/wei-shaw-sub2api/deployment.html"),
       page("配置与安全", "/projects/wei-shaw-sub2api/configuration-security.html"),
       page("首次运行与验收", "/projects/wei-shaw-sub2api/first-run-acceptance.html"),
-      page("日常运维", "/projects/wei-shaw-sub2api/operations.html"),
+      page("运维、备份与升级", "/projects/wei-shaw-sub2api/operations.html"),
       page("故障排查", "/projects/wei-shaw-sub2api/troubleshooting.html"),
       page("源码导读", "/projects/wei-shaw-sub2api/source-guide.html"),
       page("Agent 部署 Runbook", "/projects/wei-shaw-sub2api/agent-runbook.html"),

@@ -24,7 +24,7 @@ features:
   - title: AI 与智能体
     details: 提示词设计、智能体校验与 AI 任务可靠性实践。
   - title: GitHub 项目精读
-    details: TencentDB Agent Memory 与 Sub2API 的架构、部署、源码及二次实施和 Agent 指导。
+    details: TencentDB Agent Memory 与 Sub2API 的架构、部署、源码导读与 Agent Runbook。
 copyright: false
 ---
 
