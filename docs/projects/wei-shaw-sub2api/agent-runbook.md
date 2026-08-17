@@ -86,7 +86,7 @@ docker compose -f docker-compose.yml -f docker-compose.override.yml ps
 
 ## Phase 3：启动与初始化
 
-**输入**：Phase 1 的配置证据、已拉取固定制品、空白或已批准升级的持久数据状态，以及操作窗口。
+**输入**：已通过的 Phase 1 主机/制品预检证据、已通过的 Phase 2 秘密/配置证据、已拉取固定制品、空白或已批准升级的持久数据状态，以及操作窗口。任一前置 Phase 未通过不得启动。
 
 **允许动作**：按固定 Compose 文件启动；只读取容器状态和经脱敏筛选的有限日志；观察 PostgreSQL、Redis、应用健康及自动初始化。目录版 Compose 的自动初始化、依赖健康检查和环境变量范围以固定版本的 [`docker-compose.local.yml`](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/deploy/docker-compose.local.yml#L22-L193) 为证据。
 
