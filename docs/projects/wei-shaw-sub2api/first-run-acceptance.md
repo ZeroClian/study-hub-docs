@@ -94,25 +94,39 @@ curl --silent --show-error --output /dev/null --write-out '%{http_code}\n' \
 
 ## 第四层：真实非流式请求
 
-动作/命令：由受控终端以交互方式读取测试 Key，针对测试分组实际支持的端点与模型发起一次低成本、非流式请求。Key 保存在未导出的 shell 变量中，并仅写入模式 `0600` 的临时 curl 配置文件；它不会出现在 curl 参数、shell 历史、工单或录屏中。
+动作/命令：由受控终端以交互方式读取测试 Key，针对测试分组实际支持的端点与模型发起一次低成本、非流式请求。Key 保存在未导出的 shell 变量中，并仅写入模式 `0600` 的临时 curl 配置文件；它不会出现在 curl 参数、shell 历史、工单或录屏中。整个子 shell fail-closed：curl 或配置任一步失败均以非零状态结束，EXIT trap 只清理临时文件和变量而不覆盖失败状态。
 
 ```bash
-unset SUB2API_TEST_KEY
-read -r -s SUB2API_TEST_KEY
-printf '\n' >&2
-CURL_CONFIG="$(mktemp "${TMPDIR:-/tmp}/sub2api-curl.XXXXXX")"
-chmod 600 "$CURL_CONFIG"
-trap 'rm -f -- "$CURL_CONFIG"; unset SUB2API_TEST_KEY' EXIT HUP INT TERM
-printf '%s\n' \
-  'header = "Content-Type: application/json"' \
-  "header = \"Authorization: Bearer ${SUB2API_TEST_KEY}\"" \
-  > "$CURL_CONFIG"
-unset SUB2API_TEST_KEY
-curl --config "$CURL_CONFIG" --fail-with-body --silent --show-error \
-  --data '{"model":"<approved-test-model>","messages":[{"role":"user","content":"Reply with OK."}],"stream":false}' \
-  https://<approved-domain>/v1/chat/completions
-rm -f -- "$CURL_CONFIG"
-trap - EXIT HUP INT TERM
+(
+  set -eu
+  CURL_CONFIG=''
+  cleanup() {
+    status=$?
+    if [ -n "$CURL_CONFIG" ] && ! rm -f -- "$CURL_CONFIG"; then
+      [ "$status" -ne 0 ] || status=1
+    fi
+    unset SUB2API_TEST_KEY
+    return "$status"
+  }
+  trap cleanup EXIT
+  trap 'exit 129' HUP
+  trap 'exit 130' INT
+  trap 'exit 143' TERM
+
+  unset SUB2API_TEST_KEY
+  read -r -s SUB2API_TEST_KEY
+  printf '\n' >&2
+  CURL_CONFIG="$(mktemp "${TMPDIR:-/tmp}/sub2api-curl.XXXXXX")"
+  chmod 600 "$CURL_CONFIG"
+  printf '%s\n' \
+    'header = "Content-Type: application/json"' \
+    "header = \"Authorization: Bearer ${SUB2API_TEST_KEY}\"" \
+    > "$CURL_CONFIG"
+  unset SUB2API_TEST_KEY
+  curl --config "$CURL_CONFIG" --fail-with-body --silent --show-error \
+    --data '{"model":"<approved-test-model>","messages":[{"role":"user","content":"Reply with OK."}],"stream":false}' \
+    https://<approved-domain>/v1/chat/completions
+)
 ```
 
 预期结果：请求以成功状态返回一个完整响应，且日志可关联到测试用户、分组和上游账号。`源码确认`：固定版本会选择账号、转发请求并记录用量；具体可用端点和模型仍由上游账号与分组配置决定。[网关路由](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/backend/internal/server/routes/gateway.go#L175-L494) [请求与用量](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/backend/internal/handler/gateway_handler.go#L444-L589)
@@ -121,25 +135,39 @@ trap - EXIT HUP INT TERM
 
 ## 第五层：流式与计费闭环
 
-动作/命令：在同一测试对象上发起一个流式请求，并只在本地终端观察事件。Key 仍只写入模式 `0600` 的临时 curl 配置文件，不作为 curl 参数传入；完成后清除变量和临时文件。
+动作/命令：在同一测试对象上发起一个流式请求，并只在本地终端观察事件。Key 仍只写入模式 `0600` 的临时 curl 配置文件，不作为 curl 参数传入；整个子 shell会在 curl 或任一步失败时以非零状态结束，EXIT trap 清理变量和临时文件但保持原退出码。
 
 ```bash
-unset SUB2API_TEST_KEY
-read -r -s SUB2API_TEST_KEY
-printf '\n' >&2
-CURL_CONFIG="$(mktemp "${TMPDIR:-/tmp}/sub2api-curl.XXXXXX")"
-chmod 600 "$CURL_CONFIG"
-trap 'rm -f -- "$CURL_CONFIG"; unset SUB2API_TEST_KEY' EXIT HUP INT TERM
-printf '%s\n' \
-  'header = "Content-Type: application/json"' \
-  "header = \"Authorization: Bearer ${SUB2API_TEST_KEY}\"" \
-  > "$CURL_CONFIG"
-unset SUB2API_TEST_KEY
-curl --config "$CURL_CONFIG" --no-buffer --silent --show-error \
-  --data '{"model":"<approved-test-model>","messages":[{"role":"user","content":"Count from one to three."}],"stream":true}' \
-  https://<approved-domain>/v1/chat/completions
-rm -f -- "$CURL_CONFIG"
-trap - EXIT HUP INT TERM
+(
+  set -eu
+  CURL_CONFIG=''
+  cleanup() {
+    status=$?
+    if [ -n "$CURL_CONFIG" ] && ! rm -f -- "$CURL_CONFIG"; then
+      [ "$status" -ne 0 ] || status=1
+    fi
+    unset SUB2API_TEST_KEY
+    return "$status"
+  }
+  trap cleanup EXIT
+  trap 'exit 129' HUP
+  trap 'exit 130' INT
+  trap 'exit 143' TERM
+
+  unset SUB2API_TEST_KEY
+  read -r -s SUB2API_TEST_KEY
+  printf '\n' >&2
+  CURL_CONFIG="$(mktemp "${TMPDIR:-/tmp}/sub2api-curl.XXXXXX")"
+  chmod 600 "$CURL_CONFIG"
+  printf '%s\n' \
+    'header = "Content-Type: application/json"' \
+    "header = \"Authorization: Bearer ${SUB2API_TEST_KEY}\"" \
+    > "$CURL_CONFIG"
+  unset SUB2API_TEST_KEY
+  curl --config "$CURL_CONFIG" --fail-with-body --no-buffer --silent --show-error \
+    --data '{"model":"<approved-test-model>","messages":[{"role":"user","content":"Count from one to three."}],"stream":true}' \
+    https://<approved-domain>/v1/chat/completions
+)
 ```
 
 预期结果：能看到首事件和连续事件，而不是请求结束后一次性输出；请求结束后，在受保护的管理端或查询中核对一条对应的用量/计费记录和账号消耗。`源码确认`：网关会处理流式响应，并提交用量记录及扣费或订阅用量更新。[流式处理与用量](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/backend/internal/handler/gateway_handler.go#L444-L589) [计费记录](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/backend/internal/service/gateway_usage_billing.go#L599-L625) `待实践验证`：具体管理端查询位置和不同上游的 usage 语义需在目标环境确认。

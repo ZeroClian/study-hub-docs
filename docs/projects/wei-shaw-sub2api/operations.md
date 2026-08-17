@@ -39,13 +39,13 @@ curl --fail --silent --show-error http://127.0.0.1:8080/health
 
 ## PostgreSQL 逻辑备份
 
-动作：在部署目录创建受保护的备份文件。命令让数据库容器读取自己的连接变量，不打印密码；备份产物本身仍应按敏感数据处理。
+动作：在部署目录创建受保护的 custom-format 逻辑备份。备份与恢复必须使用与源 PostgreSQL 兼容的客户端，恢复目标不得低于 dump 所需版本；本例明确不携带源对象所有者和权限，恢复后由目标环境的最小权限策略重新授予。命令让数据库容器读取自己的连接变量，不打印密码；备份产物本身仍应按敏感数据处理。
 
 ```bash
 umask 077
 mkdir -p backups
 docker compose -f docker-compose.yml -f docker-compose.override.yml \
-  exec -T postgres sh -ec 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" --format=custom' \
+  exec -T postgres sh -ec 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" --format=custom --no-owner --no-privileges' \
   > "backups/sub2api-$(date +%Y%m%d-%H%M%S).dump"
 ```
 
@@ -63,34 +63,53 @@ docker compose -f docker-compose.yml -f docker-compose.override.yml \
 
 ## 恢复演练
 
-恢复演练必须在隔离主机或独立的 Compose 项目中进行，绝不对生产数据库执行试验性 `pg_restore`。下例创建专用目录、项目名和新的 PostgreSQL 18 命名卷；不要让它使用生产 Compose、生产数据库地址或生产数据目录。`SOURCE_DUMP` 是已验证的逻辑备份文件路径，不含数据库连接字符串或秘密：
+恢复演练必须在隔离主机或独立的 Compose 项目中进行，绝不对生产数据库执行试验性 `pg_restore`。下例创建专用目录、项目名和新的 PostgreSQL 18 命名卷；不要让它使用生产 Compose、生产数据库地址或生产数据目录。操作员必须先在变更记录中固定一个不可变的 `postgres@sha256:...` 镜像 digest，并提供已验证的 custom-format dump 路径；两项预检都在创建目标前完成。
 
 ```bash
-set +x
-DRILL_PROJECT="sub2api-restore-drill-$(date +%Y%m%d%H%M%S)"
-DRILL_DIR="$PWD/$DRILL_PROJECT"
-SOURCE_DUMP=/secure/path/to/verified-sub2api.dump
-test -s "$SOURCE_DUMP"
-umask 077
-mkdir -p "$DRILL_DIR"
-cd "$DRILL_DIR"
+(
+  set -eu
+  set +x
 
-unset DRILL_POSTGRES_PASSWORD
-read -r -s DRILL_POSTGRES_PASSWORD
-printf '\n' >&2
-: > .env
-chmod 600 .env
-printf '%s\n' \
-  'POSTGRES_DB=sub2api_restore_drill' \
-  'POSTGRES_USER=sub2api_restore' \
-  "POSTGRES_PASSWORD=$DRILL_POSTGRES_PASSWORD" \
-  > .env
-unset DRILL_POSTGRES_PASSWORD
+  printf '%s' 'Recorded PostgreSQL 18 digest (postgres@sha256:<64 lowercase hex>): ' >&2
+  IFS= read -r POSTGRES_IMAGE
+  if ! printf '%s\n' "$POSTGRES_IMAGE" | grep -Eq '^postgres@sha256:[0-9a-f]{64}$'; then
+    printf '%s\n' 'A recorded immutable postgres@sha256 digest is required.' >&2
+    exit 64
+  fi
+  printf '%s' 'Verified custom-format dump absolute path: ' >&2
+  IFS= read -r SOURCE_DUMP
+  case "$SOURCE_DUMP" in
+    /*) ;;
+    *) printf '%s\n' 'Use an absolute dump path so it remains valid inside the drill directory.' >&2; exit 64 ;;
+  esac
+  test -n "$SOURCE_DUMP"
+  test -f "$SOURCE_DUMP"
+  test -s "$SOURCE_DUMP"
 
-cat > compose.restore.yml <<'YAML'
+  DRILL_PROJECT="sub2api-restore-drill-$(date +%Y%m%d%H%M%S)-$$"
+  DRILL_DIR="$PWD/$DRILL_PROJECT"
+  umask 077
+  mkdir -p "$DRILL_DIR"
+  cd "$DRILL_DIR"
+
+  unset DRILL_POSTGRES_PASSWORD
+  printf '%s' 'Isolated PostgreSQL password: ' >&2
+  read -r -s DRILL_POSTGRES_PASSWORD
+  printf '\n' >&2
+  : > .env
+  chmod 600 .env
+  printf '%s\n' \
+    "POSTGRES_IMAGE=$POSTGRES_IMAGE" \
+    'POSTGRES_DB=sub2api_restore_drill' \
+    'POSTGRES_USER=sub2api_restore' \
+    "POSTGRES_PASSWORD=$DRILL_POSTGRES_PASSWORD" \
+    > .env
+  unset DRILL_POSTGRES_PASSWORD
+
+  cat > compose.restore.yml <<'YAML'
 services:
   postgres:
-    image: postgres:18
+    image: ${POSTGRES_IMAGE}
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -101,22 +120,48 @@ volumes:
   restore_pg_data:
 YAML
 
-docker compose -p "$DRILL_PROJECT" -f compose.restore.yml config -q
-docker compose -p "$DRILL_PROJECT" -f compose.restore.yml up -d postgres
-docker compose -p "$DRILL_PROJECT" -f compose.restore.yml \
-  exec -T postgres pg_isready -U sub2api_restore -d sub2api_restore
-docker compose -p "$DRILL_PROJECT" -f compose.restore.yml \
-  exec -T postgres psql -U sub2api_restore -d sub2api_restore -c '\dt'
-docker compose -p "$DRILL_PROJECT" -f compose.restore.yml \
-  cp "$SOURCE_DUMP" postgres:/restore/source.dump
-docker compose -p "$DRILL_PROJECT" -f compose.restore.yml \
-  exec -T postgres sh -ec 'pg_restore --single-transaction --exit-on-error -U "$POSTGRES_USER" -d "$POSTGRES_DB" /restore/source.dump'
-docker compose -p "$DRILL_PROJECT" -f compose.restore.yml \
-  exec -T postgres psql -U sub2api_restore -d sub2api_restore \
-  -c "SELECT COUNT(*) AS public_table_count FROM information_schema.tables WHERE table_schema = 'public';"
+  docker compose -p "$DRILL_PROJECT" -f compose.restore.yml config -q
+  docker compose -p "$DRILL_PROJECT" -f compose.restore.yml up -d postgres
+  READY=0
+  ATTEMPT=1
+  while [ "$ATTEMPT" -le 30 ]; do
+    if docker compose -p "$DRILL_PROJECT" -f compose.restore.yml \
+      exec -T postgres pg_isready -U sub2api_restore -d sub2api_restore >/dev/null 2>&1; then
+      READY=1
+      break
+    fi
+    ATTEMPT=$((ATTEMPT + 1))
+    sleep 1
+  done
+  [ "$READY" -eq 1 ]
+  docker compose -p "$DRILL_PROJECT" -f compose.restore.yml \
+    exec -T postgres pg_isready -U sub2api_restore -d sub2api_restore
+
+  INITIAL_TABLE_COUNT="$(docker compose -p "$DRILL_PROJECT" -f compose.restore.yml \
+    exec -T postgres psql -U sub2api_restore -d sub2api_restore -tA \
+    -c "SELECT count(*) FROM pg_catalog.pg_tables WHERE schemaname NOT IN ('pg_catalog', 'information_schema') AND schemaname NOT LIKE 'pg_toast%';")"
+  case "$INITIAL_TABLE_COUNT" in
+    ''|*[!0-9]*) printf '%s\n' 'Target table count is not numeric.' >&2; exit 1 ;;
+  esac
+  [ "$INITIAL_TABLE_COUNT" -eq 0 ]
+
+  docker compose -p "$DRILL_PROJECT" -f compose.restore.yml \
+    cp "$SOURCE_DUMP" postgres:/tmp/source.dump
+  docker compose -p "$DRILL_PROJECT" -f compose.restore.yml \
+    exec -T postgres sh -ec 'pg_restore --no-owner --no-privileges --single-transaction --exit-on-error -U "$POSTGRES_USER" -d "$POSTGRES_DB" /tmp/source.dump'
+
+  RESTORED_TABLE_COUNT="$(docker compose -p "$DRILL_PROJECT" -f compose.restore.yml \
+    exec -T postgres psql -U sub2api_restore -d sub2api_restore -tA \
+    -c "SELECT count(*) FROM pg_catalog.pg_tables WHERE schemaname NOT IN ('pg_catalog', 'information_schema') AND schemaname NOT LIKE 'pg_toast%';")"
+  case "$RESTORED_TABLE_COUNT" in
+    ''|*[!0-9]*) printf '%s\n' 'Restored table count is not numeric.' >&2; exit 1 ;;
+  esac
+  [ "$RESTORED_TABLE_COUNT" -gt 0 ]
+  printf 'Restored non-system table count: %s\n' "$RESTORED_TABLE_COUNT"
+)
 ```
 
-预期结果：恢复前 `\dt` 显示没有业务表；`pg_restore` 成功后，`public_table_count` 为正数。随后以相同固定应用镜像、独立网络和保留的 `TOTP_ENCRYPTION_KEY` 启动隔离应用，抽样核对管理员、2FA、账号、分组、用户、API Key 和用量记录，并运行一次低成本真实请求。`推断`：只有此类演练能证明 dump、配置和应用版本可共同恢复；生产环境不应为了“测试恢复”覆盖现有数据。
+预期结果：在 30 秒内就绪、恢复前非系统表数为 `0`，`pg_restore` 成功后非系统表数为正整数。随后以相同固定应用镜像、独立网络和保留的 `TOTP_ENCRYPTION_KEY` 启动隔离应用，抽样核对管理员、2FA、账号、分组、用户、API Key 和用量记录，并运行一次低成本真实请求。`推断`：只有此类演练能证明 dump、配置和应用版本可共同恢复；生产环境不应为了“测试恢复”覆盖现有数据。
 
 失败时保留隔离项目、日志、restore 输出和备份文件，评估迁移版本、配置秘密和备份完整性；不要删除演练卷来掩盖失败。不要在生产上尝试修复性恢复。
 
