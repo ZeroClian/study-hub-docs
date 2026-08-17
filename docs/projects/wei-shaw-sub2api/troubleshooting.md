@@ -38,12 +38,12 @@ curl --fail --silent --show-error http://127.0.0.1:8080/health
 
 ## PostgreSQL 与 Redis
 
-诊断动作：分别测试数据库可用性和 Redis 认证，不在终端中写入密码。
+诊断动作：分别测试数据库可用性和 Redis 认证。Redis CLI 继承固定 Compose 配置中的 `REDISCLI_AUTH`，不在终端中写入或重设密码。
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.override.yml exec -T postgres sh -ec 'pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
 docker compose -f docker-compose.yml -f docker-compose.override.yml \
-  exec -T redis sh -ec 'REDISCLI_AUTH="$REDIS_PASSWORD" redis-cli ping'
+  exec -T redis redis-cli ping
 ```
 
 `源码确认`：目录版 Compose 为 PostgreSQL 和 Redis 配置独立持久化目录，Redis 还启用密码、AOF 与快照。[目录版 Compose](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/deploy/docker-compose.local.yml#L195-L262) `推断`：失败时应先区分容器未启动、认证拒绝、磁盘/内存耗尽和网络超时，再变更一个受控变量并重试。
@@ -52,17 +52,18 @@ docker compose -f docker-compose.yml -f docker-compose.override.yml \
 
 ## 登录、2FA 与配置透传
 
-诊断动作：以受控副本核对 `.env`、`docker-compose.yml`、`docker-compose.override.yml` 的变更记录。以下两步只输出变量名及 `set`/`missing`、`referenced`/`not referenced` 状态，绝不输出 `.env` 值或 Compose 渲染结果：
+诊断动作：以受控副本核对 `.env`、`docker-compose.yml`、`docker-compose.override.yml` 的变更记录。以下 `.env` 检查只输出变量名及 `set`/`missing` 状态，空值（如 `JWT_SECRET=`）同样是 `missing`，绝不输出值：
 
 ```bash
 for ENV_KEY in JWT_SECRET TOTP_ENCRYPTION_KEY; do
-  if grep -q "^${ENV_KEY}=" .env; then
+  if grep -Eq "^${ENV_KEY}=[^[:space:]].*" .env; then
     printf '%s: set\n' "$ENV_KEY"
   else
     printf '%s: missing\n' "$ENV_KEY"
   fi
 done
 
+# 此 grep 仅证明 Compose 文本中出现变量名，不证明运行容器实际收到该值。
 for ENV_KEY in JWT_SECRET TOTP_ENCRYPTION_KEY; do
   if grep -Eq "(\\$\\{?${ENV_KEY}\\}?|${ENV_KEY}:)" \
     docker-compose.yml docker-compose.override.yml; then
@@ -71,11 +72,28 @@ for ENV_KEY in JWT_SECRET TOTP_ENCRYPTION_KEY; do
     printf '%s: not referenced\n' "$ENV_KEY"
   fi
 done
+
+# 仅从运行中的 sub2api 容器输出固定键名及 set/missing 状态。
+docker compose -f docker-compose.yml -f docker-compose.override.yml \
+  exec -T sub2api sh -ec '
+    for ENV_KEY in JWT_SECRET TOTP_ENCRYPTION_KEY; do
+      case "$ENV_KEY" in
+        JWT_SECRET) ENV_VALUE=${JWT_SECRET:-} ;;
+        TOTP_ENCRYPTION_KEY) ENV_VALUE=${TOTP_ENCRYPTION_KEY:-} ;;
+      esac
+      if [ -n "$ENV_VALUE" ]; then
+        printf "%s=set\\n" "$ENV_KEY"
+      else
+        printf "%s=missing\\n" "$ENV_KEY"
+      fi
+    done
+    unset ENV_VALUE
+  '
 ```
 
 `源码确认`：目录版 Compose 没有 `env_file: .env`；只有在 Compose `environment` 中明确引用的值才会进入容器，`JWT_SECRET` 和 `TOTP_ENCRYPTION_KEY` 是已显式传入的持久秘密。[目录版 Compose](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/deploy/docker-compose.local.yml#L44-L180) [秘密配置](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/deploy/docker-compose.local.yml#L87-L126)
 
-诊断结论：`missing` 表示值未在 `.env` 定义；`not referenced` 表示 Compose 不会把该变量传给容器；两者均为 `set`/`referenced` 但行为未改变时，变更可能尚未应用到运行中的容器，需要在维护窗口重建受影响服务。修复边界：若变量没有透传，先确认该固定版本是否支持它，再在已审阅的 override 中作最小补充或使用已验证的 `data/config.yaml`。在获批变更后，才重建应用容器并复验：
+诊断结论：`.env` 的 `missing` 表示源文件没有非空值；`referenced`/`not referenced` 仅为 Compose 文本引用证据，不能证明变量进入容器；容器检查的 `missing` 才说明运行时未收到非空值。若源文件已更新而运行时状态或行为未改变，变更可能尚未应用到运行中的容器，需要在维护窗口重建受影响服务。修复边界：若变量没有透传，先确认该固定版本是否支持它，再在已审阅的 override 中作最小补充或使用已验证的 `data/config.yaml`。在获批变更后，才重建应用容器并复验：
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.override.yml up -d --force-recreate sub2api

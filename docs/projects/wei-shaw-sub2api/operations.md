@@ -57,23 +57,68 @@ docker compose -f docker-compose.yml -f docker-compose.override.yml \
 
 `源码确认`：固定版本的备份服务将 PostgreSQL dump/restore 作为独立操作，并通过 S3 接口上传、下载和管理备份对象；它不是整机备份。[备份服务](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/backend/internal/service/backup_service.go#L28-L92) [S3 存储实现](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/backend/internal/repository/backup_s3_store.go#L18-L60)
 
-使用内置 S3 备份前，确认对象存储端点、桶、区域、最小权限凭据、保留期和下载恢复路径都受控。`源码确认`：备份配置中的敏感内容会经 TOTP 加密密钥处理；因此恢复同一份配置或 S3 备份时必须保留原有的 `TOTP_ENCRYPTION_KEY`。[备份服务](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/backend/internal/service/backup_service.go#L546-L619) 不要在页面、命令历史或验收记录中写入对象存储访问密钥。
+使用内置 S3 备份前，确认对象存储端点、桶、区域、最小权限凭据、保留期和下载恢复路径都受控。`源码确认`：备份配置的守卫会要求可用的 TOTP 加密密钥，相关敏感配置经该密钥加密处理；因此恢复同一份配置或 S3 备份时必须保留原有的 `TOTP_ENCRYPTION_KEY`。[备份配置守卫](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/backend/internal/service/backup_service.go#L338-L379) [备份配置加密](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/backend/internal/service/backup_service.go#L1243-L1260) 不要在页面、命令历史或验收记录中写入对象存储访问密钥。
 
 `待实践验证`：固定版本管理端中的 S3 备份配置路径、计划任务界面和不同 S3 兼容服务的语义需在隔离环境验证。即使内置任务显示成功，仍需验证对象存在、可下载且可恢复，并保留 `.env`、Compose 和数据目录评估。
 
 ## 恢复演练
 
-恢复演练必须在隔离主机或独立的、空白的 Compose 项目与数据目录中进行，绝不对生产数据库执行试验性 `pg_restore`。先复制备份文件和仅恢复所需的受保护配置引用，再恢复到空数据库：
+恢复演练必须在隔离主机或独立的 Compose 项目中进行，绝不对生产数据库执行试验性 `pg_restore`。下例创建专用目录、项目名和新的 PostgreSQL 18 命名卷；不要让它使用生产 Compose、生产数据库地址或生产数据目录。`SOURCE_DUMP` 是已验证的逻辑备份文件路径，不含数据库连接字符串或秘密：
 
 ```bash
-pg_restore --exit-on-error --verbose \
-  --dbname="<isolated-postgresql-connection>" \
-  backups/<verified-backup>.dump
+set +x
+DRILL_PROJECT="sub2api-restore-drill-$(date +%Y%m%d%H%M%S)"
+DRILL_DIR="$PWD/$DRILL_PROJECT"
+SOURCE_DUMP=/secure/path/to/verified-sub2api.dump
+test -s "$SOURCE_DUMP"
+umask 077
+mkdir -p "$DRILL_DIR"
+cd "$DRILL_DIR"
+
+unset DRILL_POSTGRES_PASSWORD
+read -r -s DRILL_POSTGRES_PASSWORD
+printf '\n' >&2
+: > .env
+chmod 600 .env
+printf '%s\n' \
+  'POSTGRES_DB=sub2api_restore_drill' \
+  'POSTGRES_USER=sub2api_restore' \
+  "POSTGRES_PASSWORD=$DRILL_POSTGRES_PASSWORD" \
+  > .env
+unset DRILL_POSTGRES_PASSWORD
+
+cat > compose.restore.yml <<'YAML'
+services:
+  postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - restore_pg_data:/var/lib/postgresql/data
+volumes:
+  restore_pg_data:
+YAML
+
+docker compose -p "$DRILL_PROJECT" -f compose.restore.yml config -q
+docker compose -p "$DRILL_PROJECT" -f compose.restore.yml up -d postgres
+docker compose -p "$DRILL_PROJECT" -f compose.restore.yml \
+  exec -T postgres pg_isready -U sub2api_restore -d sub2api_restore
+docker compose -p "$DRILL_PROJECT" -f compose.restore.yml \
+  exec -T postgres psql -U sub2api_restore -d sub2api_restore -c '\dt'
+docker compose -p "$DRILL_PROJECT" -f compose.restore.yml \
+  cp "$SOURCE_DUMP" postgres:/restore/source.dump
+docker compose -p "$DRILL_PROJECT" -f compose.restore.yml \
+  exec -T postgres sh -ec 'pg_restore --single-transaction --exit-on-error -U "$POSTGRES_USER" -d "$POSTGRES_DB" /restore/source.dump'
+docker compose -p "$DRILL_PROJECT" -f compose.restore.yml \
+  exec -T postgres psql -U sub2api_restore -d sub2api_restore \
+  -c "SELECT COUNT(*) AS public_table_count FROM information_schema.tables WHERE table_schema = 'public';"
 ```
 
-预期结果：恢复命令成功；使用相同的固定镜像和保留的 `TOTP_ENCRYPTION_KEY` 启动隔离环境后，抽样核对管理员、2FA、账号、分组、用户、API Key 和用量记录，并运行一次低成本真实请求。`推断`：只有此类演练能证明 dump、配置和应用版本可共同恢复；生产环境不应为了“测试恢复”覆盖现有数据。
+预期结果：恢复前 `\dt` 显示没有业务表；`pg_restore` 成功后，`public_table_count` 为正数。随后以相同固定应用镜像、独立网络和保留的 `TOTP_ENCRYPTION_KEY` 启动隔离应用，抽样核对管理员、2FA、账号、分组、用户、API Key 和用量记录，并运行一次低成本真实请求。`推断`：只有此类演练能证明 dump、配置和应用版本可共同恢复；生产环境不应为了“测试恢复”覆盖现有数据。
 
-失败时保留隔离环境的日志、restore 输出和备份文件，评估迁移版本、配置秘密和备份完整性。不要在生产上尝试修复性恢复。
+失败时保留隔离项目、日志、restore 输出和备份文件，评估迁移版本、配置秘密和备份完整性；不要删除演练卷来掩盖失败。不要在生产上尝试修复性恢复。
 
 ## 整机迁移
 
@@ -102,13 +147,13 @@ docker compose -f docker-compose.yml -f docker-compose.override.yml ps
 
 ## 固定版本升级
 
-先在受控变更中记录旧 tag/digest、目标 tag/digest、Release 链接和迁移摘要；在审核后的 `docker-compose.override.yml` 中固定目标制品。然后只执行拉取、启动和观察：
+先在受控变更中记录旧 tag/digest、目标 tag/digest、Release 链接和迁移摘要；在审核后的 `docker-compose.override.yml` 中固定**应用**目标制品。PostgreSQL 与 Redis 镜像升级必须有各自固定 digest、兼容性审阅、备份/恢复证据和独立变更批准，不能随应用升级命令附带更新。然后只拉取并重建应用服务：
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.override.yml config -q
-docker compose -f docker-compose.yml -f docker-compose.override.yml pull
-docker compose -f docker-compose.yml -f docker-compose.override.yml up -d
-docker compose -f docker-compose.yml -f docker-compose.override.yml ps
+docker compose -f docker-compose.yml -f docker-compose.override.yml pull sub2api
+docker compose -f docker-compose.yml -f docker-compose.override.yml up -d --no-deps sub2api
+docker compose -f docker-compose.yml -f docker-compose.override.yml ps sub2api
 docker compose -f docker-compose.yml -f docker-compose.override.yml logs --tail=200 sub2api
 ```
 
