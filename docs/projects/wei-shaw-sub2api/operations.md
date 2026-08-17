@@ -188,8 +188,10 @@ POSTGRES_IDS="$(docker ps -aq --filter "label=com.docker.compose.project=$DRILL_
 POSTGRES_ID="$POSTGRES_IDS"
 CONTAINER_LABELS="$(docker inspect "$POSTGRES_ID" --format '{{ index .Config.Labels "com.docker.compose.project" }} {{ index .Config.Labels "com.docker.compose.service" }}')"
 [ "$CONTAINER_LABELS" = "$DRILL_PROJECT postgres" ] || exit 64
-MOUNT_SOURCE="$(docker inspect "$POSTGRES_ID" --format '{{ range .Mounts }}{{ if eq .Destination "/var/lib/postgresql/data" }}{{ .Source }}{{ "\n" }}{{ end }}{{ end }}')"
-[ "$(printf '%s\n' "$MOUNT_SOURCE" | sed '/^$/d' | wc -l | tr -d ' ')" -eq 1 ] && [ "$MOUNT_SOURCE" = "$EXPECTED_VOLUME" ] || exit 64
+MOUNT_DATA="$(docker inspect "$POSTGRES_ID" --format '{{ range .Mounts }}{{ if eq .Destination "/var/lib/postgresql/data" }}{{ printf "%s|%s|%s\n" .Type .Name .Source }}{{ end }}{{ end }}')"
+[ "$(printf '%s\n' "$MOUNT_DATA" | sed '/^$/d' | wc -l | tr -d ' ')" -eq 1 ] || exit 64
+case "$MOUNT_DATA" in "volume|$EXPECTED_VOLUME|"*) ;; *) printf '%s\n' 'PostgreSQL data mount is not the expected named volume.' >&2; exit 64 ;; esac
+MOUNT_SOURCE=${MOUNT_DATA#*|*|}
 VOLUME_LABELS="$(docker volume inspect "$EXPECTED_VOLUME" --format '{{ index .Labels "com.docker.compose.project" }} {{ index .Labels "com.docker.compose.volume" }}')"
 [ "$VOLUME_LABELS" = "$DRILL_PROJECT restore_pg_data" ] || { printf '%s\n' 'Restore volume labels do not exactly match the drill project.' >&2; exit 64; }
 docker compose -p "$DRILL_PROJECT" -f "$DRILL_DIR/compose.restore.yml" ps -a
@@ -219,8 +221,10 @@ Agent 仅能提交上述含精确项目、绝对目录、容器、物理卷和 l
   POSTGRES_ID="$POSTGRES_IDS"
   CONTAINER_LABELS="$(docker inspect "$POSTGRES_ID" --format '{{ index .Config.Labels "com.docker.compose.project" }} {{ index .Config.Labels "com.docker.compose.service" }}')"
   [ "$CONTAINER_LABELS" = "$DRILL_PROJECT postgres" ] || exit 64
-  MOUNT_SOURCE="$(docker inspect "$POSTGRES_ID" --format '{{ range .Mounts }}{{ if eq .Destination "/var/lib/postgresql/data" }}{{ .Source }}{{ "\n" }}{{ end }}{{ end }}')"
-  [ "$(printf '%s\n' "$MOUNT_SOURCE" | sed '/^$/d' | wc -l | tr -d ' ')" -eq 1 ] && [ "$MOUNT_SOURCE" = "$EXPECTED_VOLUME" ] || exit 64
+MOUNT_DATA="$(docker inspect "$POSTGRES_ID" --format '{{ range .Mounts }}{{ if eq .Destination "/var/lib/postgresql/data" }}{{ printf "%s|%s|%s\n" .Type .Name .Source }}{{ end }}{{ end }}')"
+  [ "$(printf '%s\n' "$MOUNT_DATA" | sed '/^$/d' | wc -l | tr -d ' ')" -eq 1 ] || exit 64
+  case "$MOUNT_DATA" in "volume|$EXPECTED_VOLUME|"*) ;; *) exit 64 ;; esac
+  MOUNT_SOURCE=${MOUNT_DATA#*|*|}
   VOLUME_LABELS="$(docker volume inspect "$EXPECTED_VOLUME" --format '{{ index .Labels "com.docker.compose.project" }} {{ index .Labels "com.docker.compose.volume" }}')"
   [ "$VOLUME_LABELS" = "$DRILL_PROJECT restore_pg_data" ] || { printf '%s\n' 'Restore volume labels do not exactly match the drill project.' >&2; exit 64; }
 
