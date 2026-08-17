@@ -15,11 +15,11 @@ description: Sub2API 的定位、能力、技术栈、适用边界与版本风�
 
 `源码确认`：固定版本暴露 Anthropic Messages、OpenAI Responses/Chat Completions、部分 OpenAI 兼容端点、Gemini `v1beta` 和 Antigravity 等网关入口。证据：[`gateway.go`](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/backend/internal/server/routes/gateway.go#L175-L494)。
 
-- 以 API Key、用户、订阅和分组为基础执行访问控制。
-- 按平台、账号可用状态、负载和粘性会话调度上游账号。
-- 对并发、速率、用量与费用实施平台侧控制和记录。
-- 提供内嵌管理界面，用于管理账号、分组、Key、订阅及相关运营对象。
-- 支持流式转发；入口代理需要按流式连接的要求配置 SSE/WebSocket 与超时。
+- `源码确认`：API Key 中间件验证 Key、关联用户、可用分组，并在适用时执行配额、订阅和余额检查。证据：[`api_key_auth.go`](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/backend/internal/server/middleware/api_key_auth.go#L25-L34)、[`api_key_auth.go`](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/backend/internal/server/middleware/api_key_auth.go#L98-L177)。
+- `源码确认`：网关 Handler 生成会话哈希，读取会话绑定，并调用账号选择逻辑；选中的账号还会受账号并发槽位约束。证据：[`gateway_handler.go`](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/backend/internal/handler/gateway_handler.go#L255-L317)、[`gateway_handler.go`](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/backend/internal/handler/gateway_handler.go#L703-L733)。
+- `源码确认`：网关 Handler 获取用户并发槽位，并将用量记录任务交给 `GatewayService.RecordUsage`；后者负责记录用量和扣费或更新订阅用量。证据：[`gateway_handler.go`](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/backend/internal/handler/gateway_handler.go#L229-L240)、[`gateway_handler.go`](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/backend/internal/handler/gateway_handler.go#L563-L589)、[`gateway_usage_billing.go`](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/backend/internal/service/gateway_usage_billing.go#L599-L625)。
+- `源码确认`：同一个路由进程注册用户、管理、网关和支付路由，并提供嵌入式前端，因此管理界面随应用进程提供。证据：[`router.go`](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/backend/internal/server/router.go#L58-L95)、[`router.go`](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/backend/internal/server/router.go#L116-L134)。
+- `官方资料`：反向代理需要保留升级头、关闭流式响应缓冲并配置足够长的读写超时；否则流式连接和客户端地址处理会偏离预期。证据：[`EDGE_SECURITY.md`](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/deploy/EDGE_SECURITY.md#L78-L145)、[`EDGE_SECURITY.md`](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/deploy/EDGE_SECURITY.md#L148-L193)。
 
 ## 它不是什么
 
