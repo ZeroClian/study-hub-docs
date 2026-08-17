@@ -30,7 +30,7 @@ Internet -> 443/TCP -> Caddy or Nginx -> 127.0.0.1:8080 -> Sub2API
 ## 部署前清单
 
 - [ ] 已获得服务器、域名、DNS、反向代理和防火墙修改权限。
-- [ ] Docker Engine 与 Compose v2 可用，磁盘空间可容纳镜像、PostgreSQL、Redis、应用数据和备份。
+- [ ] Docker Engine、Compose v2 与 OpenSSL 可用，磁盘空间可容纳镜像、PostgreSQL、Redis、应用数据和备份。
 - [ ] 域名已解析到服务器，`80/443` 未被其他服务占用。
 - [ ] 已确定加密备份位置、维护窗口、恢复负责人及可接受的数据丢失窗口。
 - [ ] 已准备独立的数据库、Redis、管理员、JWT 与 TOTP 秘密；不在终端录屏、工单或聊天中回显。
@@ -58,6 +58,11 @@ fi
 
 sudo install -d -m 0750 -o "$USER" -g "$USER" "$DEPLOY_DIR"
 cd "$DEPLOY_DIR"
+
+command -v openssl >/dev/null 2>&1 || {
+  printf '%s\n' "OpenSSL is required to generate secrets before creating .env." >&2
+  exit 1
+}
 
 SUB2API_COMMIT=e803e3851c0a7e222cfadeafad7b8636ab959d11
 curl --fail --location \
@@ -124,24 +129,118 @@ SECURITY_URL_ALLOWLIST_UPSTREAM_HOSTS=api.example-upstream.com,models.example-up
 
 `源码确认`：目录版 Compose 将这些启动变量显式传给容器。[目录版 Compose](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/deploy/docker-compose.local.yml#L87-L126) `推断`：`JWT_SECRET` 和 `TOTP_ENCRYPTION_KEY` 必须跨重启保持不变，分别关系到会话签名和既有加密内容的可读性；在目标环境轮换前应备份并测试恢复。
 
-首次安装时，以关闭 shell 跟踪的方式生成五个独立秘密，并在 Linux 上用 GNU `sed -i` 写入 `.env`；命令不会打印秘密。另行用受保护编辑器把 `ADMIN_EMAIL` 改为管理员邮箱：
+首次安装时，以关闭 shell 跟踪的方式生成五个独立秘密，并由操作员输入管理员邮箱和已确认的上游主机列表。以下 Bash 流程只使用 shell 内建的 `while`、`case`、`read`、`printf` 将值写入模式为 `0600` 的临时文件；秘密不会出现在 `sed` 或其他外部程序的参数/环境中。预检成功后才以同一文件系统内的 `mv` 原子替换 `.env`：
 
 ```bash
 set +x
+umask 077
+
+BIND_HOST=127.0.0.1
+SECURITY_URL_ALLOWLIST_ENABLED=true
+SECURITY_URL_ALLOWLIST_ALLOW_INSECURE_HTTP=false
+SECURITY_URL_ALLOWLIST_ALLOW_PRIVATE_HOSTS=false
+
+printf '%s' 'Administrator email: ' >&2
+IFS= read -r ADMIN_EMAIL
+printf '%s' 'Confirmed comma-separated upstream hostnames (exact or *.example.com): ' >&2
+IFS= read -r SECURITY_URL_ALLOWLIST_UPSTREAM_HOSTS
+
 POSTGRES_PASSWORD="$(openssl rand -hex 32)"
 REDIS_PASSWORD="$(openssl rand -hex 32)"
 ADMIN_PASSWORD="$(openssl rand -hex 32)"
 JWT_SECRET="$(openssl rand -hex 32)"
 TOTP_ENCRYPTION_KEY="$(openssl rand -hex 32)"
 
-sed -i \
-  -e "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=${POSTGRES_PASSWORD}|" \
-  -e "s|^REDIS_PASSWORD=.*|REDIS_PASSWORD=${REDIS_PASSWORD}|" \
-  -e "s|^ADMIN_PASSWORD=.*|ADMIN_PASSWORD=${ADMIN_PASSWORD}|" \
-  -e "s|^JWT_SECRET=.*|JWT_SECRET=${JWT_SECRET}|" \
-  -e "s|^TOTP_ENCRYPTION_KEY=.*|TOTP_ENCRYPTION_KEY=${TOTP_ENCRYPTION_KEY}|" \
-  .env
+ENV_TMP=".env.$$.tmp"
+: > "$ENV_TMP"
+chmod 600 "$ENV_TMP"
+
+while IFS= read -r ENV_LINE || [ -n "$ENV_LINE" ]; do
+  case "$ENV_LINE" in
+    BIND_HOST=*|POSTGRES_PASSWORD=*|REDIS_PASSWORD=*|ADMIN_EMAIL=*|ADMIN_PASSWORD=*|JWT_SECRET=*|TOTP_ENCRYPTION_KEY=*|SECURITY_URL_ALLOWLIST_ENABLED=*|SECURITY_URL_ALLOWLIST_ALLOW_INSECURE_HTTP=*|SECURITY_URL_ALLOWLIST_ALLOW_PRIVATE_HOSTS=*|SECURITY_URL_ALLOWLIST_UPSTREAM_HOSTS=*)
+      ;;
+    *)
+      printf '%s\n' "$ENV_LINE" >> "$ENV_TMP"
+      ;;
+  esac
+done < .env
+
+printf '%s\n' \
+  "BIND_HOST=$BIND_HOST" \
+  "POSTGRES_PASSWORD=$POSTGRES_PASSWORD" \
+  "REDIS_PASSWORD=$REDIS_PASSWORD" \
+  "ADMIN_EMAIL=$ADMIN_EMAIL" \
+  "ADMIN_PASSWORD=$ADMIN_PASSWORD" \
+  "JWT_SECRET=$JWT_SECRET" \
+  "TOTP_ENCRYPTION_KEY=$TOTP_ENCRYPTION_KEY" \
+  "SECURITY_URL_ALLOWLIST_ENABLED=$SECURITY_URL_ALLOWLIST_ENABLED" \
+  "SECURITY_URL_ALLOWLIST_ALLOW_INSECURE_HTTP=$SECURITY_URL_ALLOWLIST_ALLOW_INSECURE_HTTP" \
+  "SECURITY_URL_ALLOWLIST_ALLOW_PRIVATE_HOSTS=$SECURITY_URL_ALLOWLIST_ALLOW_PRIVATE_HOSTS" \
+  "SECURITY_URL_ALLOWLIST_UPSTREAM_HOSTS=$SECURITY_URL_ALLOWLIST_UPSTREAM_HOSTS" \
+  >> "$ENV_TMP"
+
+get_env_value() {
+  ENV_KEY=$1
+  ENV_VALUE=
+  while IFS= read -r ENV_LINE || [ -n "$ENV_LINE" ]; do
+    case "$ENV_LINE" in
+      "$ENV_KEY"=*) ENV_VALUE=${ENV_LINE#*=} ;;
+    esac
+  done < "$ENV_TMP"
+}
+
+invalid_value() {
+  case "$1" in
+    ''|change_this_secure_password|"<"*">") return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+valid_upstream_hosts() {
+  IFS=, read -r -a UPSTREAM_HOSTS <<< "$1"
+  ((${#UPSTREAM_HOSTS[@]} > 0)) || return 1
+  for UPSTREAM_HOST in "${UPSTREAM_HOSTS[@]}"; do
+    [[ "$UPSTREAM_HOST" =~ ^(\*\.)?([A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)(\.([A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?))+$ ]] || return 1
+    [[ "$UPSTREAM_HOST" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] && return 1
+    case "$UPSTREAM_HOST" in
+      *example.com|*example-upstream.com) return 1 ;;
+    esac
+  done
+}
+
+PREFLIGHT_FAILED=0
+for ENV_KEY in POSTGRES_PASSWORD REDIS_PASSWORD ADMIN_PASSWORD JWT_SECRET TOTP_ENCRYPTION_KEY; do
+  get_env_value "$ENV_KEY"
+  invalid_value "$ENV_VALUE" && PREFLIGHT_FAILED=1
+done
+
+get_env_value BIND_HOST
+[ "$ENV_VALUE" = "127.0.0.1" ] || PREFLIGHT_FAILED=1
+get_env_value SECURITY_URL_ALLOWLIST_ENABLED
+[ "$ENV_VALUE" = "true" ] || PREFLIGHT_FAILED=1
+get_env_value SECURITY_URL_ALLOWLIST_ALLOW_INSECURE_HTTP
+[ "$ENV_VALUE" = "false" ] || PREFLIGHT_FAILED=1
+get_env_value SECURITY_URL_ALLOWLIST_ALLOW_PRIVATE_HOSTS
+[ "$ENV_VALUE" = "false" ] || PREFLIGHT_FAILED=1
+get_env_value ADMIN_EMAIL
+if invalid_value "$ENV_VALUE" || [ "$ENV_VALUE" = "admin@example.com" ] || [[ ! "$ENV_VALUE" =~ ^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$ ]]; then
+  PREFLIGHT_FAILED=1
+fi
+get_env_value SECURITY_URL_ALLOWLIST_UPSTREAM_HOSTS
+if invalid_value "$ENV_VALUE" || ! valid_upstream_hosts "$ENV_VALUE"; then
+  PREFLIGHT_FAILED=1
+fi
+
+if [ "$PREFLIGHT_FAILED" -ne 0 ]; then
+  printf '%s\n' "Production .env policy check failed; no values were printed and .env was not replaced." >&2
+  rm -f "$ENV_TMP"
+  unset POSTGRES_PASSWORD REDIS_PASSWORD ADMIN_PASSWORD JWT_SECRET TOTP_ENCRYPTION_KEY
+  exit 1
+fi
+
+mv "$ENV_TMP" .env
 unset POSTGRES_PASSWORD REDIS_PASSWORD ADMIN_PASSWORD JWT_SECRET TOTP_ENCRYPTION_KEY
+unset ADMIN_EMAIL SECURITY_URL_ALLOWLIST_UPSTREAM_HOSTS UPSTREAM_HOSTS UPSTREAM_HOST
 ```
 
 `源码确认`：目录版 Compose 支持启用 URL allowlist，并以逗号分隔的上游主机列表作为 allowlist。[目录版 Compose](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/deploy/docker-compose.local.yml#L128-L152) `推断`：启用后，列表项只能是精确主机名或 `*.example.com` 形式的主机通配符；上例的两个 `example-upstream.com` 主机只是结构占位符，必须替换为已审核、已验证的真实上游主机。不完整列表会拒绝遗漏的上游请求，这是预期的 fail-closed 行为，应在上线前以最小真实请求逐项补齐和验证。
@@ -154,37 +253,9 @@ allowlist 启用时，上游 URL 必须使用 HTTPS；`SECURITY_URL_ALLOWLIST_AL
 
 所有 Compose 命令均显式加载基础文件和覆盖文件，避免遗漏固定镜像或本地覆写：
 
-在渲染或启动前执行以下预检；它只报告失败，不打印 `.env` 中的值：
+上方的首次安装流程会在原子替换前执行完整生产预检；只有该预检成功后，才执行下列渲染或启动命令。既有部署不要重新运行首次安装的秘密生成步骤。
 
 ```bash
-awk -F= '
-  BEGIN {
-    required["POSTGRES_PASSWORD"] = 1
-    required["REDIS_PASSWORD"] = 1
-    required["ADMIN_PASSWORD"] = 1
-    required["JWT_SECRET"] = 1
-    required["TOTP_ENCRYPTION_KEY"] = 1
-  }
-  /^[[:space:]]*#/ || /^[[:space:]]*$/ { next }
-  {
-    key = $1
-    value = substr($0, index($0, "=") + 1)
-    values[key] = value
-  }
-  END {
-    for (key in required) {
-      value = values[key]
-      if (!(key in values) || value == "" || value == "change_this_secure_password" || value ~ /^<[^>]+>$/) {
-        invalid = 1
-      }
-    }
-    exit invalid
-  }
-' .env || {
-  printf '%s\n' "Required .env values are missing, empty, known defaults, or placeholders." >&2
-  exit 1
-}
-
 docker compose -f docker-compose.yml -f docker-compose.override.yml config -q
 docker compose -f docker-compose.yml -f docker-compose.override.yml config --images
 install -m 0600 /dev/null rendered-compose.yaml
@@ -235,16 +306,19 @@ api.example.com {
 }
 ```
 
-首次配置时，先验证并启用/启动 systemd 服务；之后修改配置时只验证后 reload：
+首次配置时先启用服务，再以 `reload-or-restart` 覆盖“软件包已带默认配置且已自动启动”与“新安装尚未运行”两种状态；之后修改配置时也使用相同的验证和加载顺序：
 
 ```bash
 sudo caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
-sudo systemctl enable --now caddy
+sudo systemctl enable caddy
+sudo systemctl reload-or-restart caddy
+sudo systemctl is-active --quiet caddy
 sudo systemctl status --no-pager caddy
 
 # Later Caddyfile changes
 sudo caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
-sudo systemctl reload caddy
+sudo systemctl reload-or-restart caddy
+sudo systemctl is-active --quiet caddy
 sudo systemctl status --no-pager caddy
 ```
 
