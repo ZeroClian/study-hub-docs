@@ -89,34 +89,38 @@ sha256sum docker-compose.yml .env.example > source-files.sha256
 docker compose -f docker-compose.yml config --images
 ```
 
-由批准的变更记录给出三个已审核 tag；拉取时明确限定这三个制品，解析并记录本主机实际得到的 digest。以下变量的值是待批准的制品标识，不是可直接复制的 digest：
+`config --images` 或对固定 tag 的拉取只能用于**候选发现**。候选输出（包括 `RepoDigests`）不构成批准来源，不能因为格式正确就自动提升为生产制品，也不能接受其他 registry/repository 的同形 digest。由独立的已批准变更记录或受控制品清单审核来源、平台、digest 与日期后，操作员才将其三条精确值输入以下默认流程。
 
 ```bash
 set -eu
 set +x
 
-SUB2API_TAGGED_IMAGE='weishaw/sub2api:0.1.176'
-POSTGRES_TAGGED_IMAGE='postgres:18'
-REDIS_TAGGED_IMAGE='redis:8'
+printf '%s' 'Approved weishaw/sub2api image from the controlled manifest: ' >&2
+IFS= read -r SUB2API_APPROVED_IMAGE
+printf '%s' 'Approved postgres image from the controlled manifest: ' >&2
+IFS= read -r POSTGRES_APPROVED_IMAGE
+printf '%s' 'Approved redis image from the controlled manifest: ' >&2
+IFS= read -r REDIS_APPROVED_IMAGE
 
-docker pull "$SUB2API_TAGGED_IMAGE"
-docker pull "$POSTGRES_TAGGED_IMAGE"
-docker pull "$REDIS_TAGGED_IMAGE"
-
-SUB2API_APPROVED_IMAGE="$(docker image inspect "$SUB2API_TAGGED_IMAGE" --format '{{index .RepoDigests 0}}')"
-POSTGRES_APPROVED_IMAGE="$(docker image inspect "$POSTGRES_TAGGED_IMAGE" --format '{{index .RepoDigests 0}}')"
-REDIS_APPROVED_IMAGE="$(docker image inspect "$REDIS_TAGGED_IMAGE" --format '{{index .RepoDigests 0}}')"
-
-for APPROVED_IMAGE in "$SUB2API_APPROVED_IMAGE" "$POSTGRES_APPROVED_IMAGE" "$REDIS_APPROVED_IMAGE"; do
-  printf '%s\n' "$APPROVED_IMAGE" | grep -Eq '^[^@[:space:]]+@sha256:[0-9a-f]{64}$' || {
-    printf '%s\n' "Could not resolve an immutable image digest." >&2
-    exit 1
+require_approved_image() {
+  IMAGE_VALUE=$1
+  EXPECTED_REPOSITORY=$2
+  printf '%s\n' "$IMAGE_VALUE" | grep -Eq "^${EXPECTED_REPOSITORY}@sha256:[0-9a-f]{64}$" || {
+    printf '%s\n' "Approved image does not exactly match ${EXPECTED_REPOSITORY}@sha256:<64 lowercase hex>." >&2
+    exit 64
   }
-  printf '%s\n' "$APPROVED_IMAGE"
-done
+}
+
+require_approved_image "$SUB2API_APPROVED_IMAGE" 'weishaw/sub2api'
+require_approved_image "$POSTGRES_APPROVED_IMAGE" 'postgres'
+require_approved_image "$REDIS_APPROVED_IMAGE" 'redis'
+
+docker pull "$SUB2API_APPROVED_IMAGE"
+docker pull "$POSTGRES_APPROVED_IMAGE"
+docker pull "$REDIS_APPROVED_IMAGE"
 ```
 
-操作员复核上述三个 digest、记录批准日期与平台后，写入覆盖文件。下面的文件只含公开镜像标识；`.env` 和任何展开配置都不写入、上传或发送给 Agent：
+这三个变量始终来自外部批准记录而非 `docker image inspect`；拉取只是取得已批准的精确制品。写入覆盖文件时只含公开镜像标识；`.env` 和任何展开配置都不写入、上传或发送给 Agent：
 
 ```bash
 umask 077
@@ -164,16 +168,33 @@ SECURITY_URL_ALLOWLIST_UPSTREAM_HOSTS=api.example-upstream.com,models.example-up
 
 `源码确认`：目录版 Compose 将这些启动变量显式传给容器。[目录版 Compose](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/deploy/docker-compose.local.yml#L87-L126) `推断`：`JWT_SECRET` 和 `TOTP_ENCRYPTION_KEY` 必须跨重启保持不变，分别关系到会话签名和既有加密内容的可读性；在目标环境轮换前应备份并测试恢复。
 
-首次安装时，以关闭 shell 跟踪的方式生成五个独立秘密，并由操作员输入管理员邮箱和已确认的上游主机列表。以下 Bash 流程只使用 shell 内建的 `while`、`case`、`read`、`printf` 将值写入模式为 `0600` 的临时文件；秘密不会出现在 `sed` 或其他外部程序的参数/环境中。预检成功后才以同一文件系统内的 `mv` 原子替换 `.env`：
+首次安装时，以关闭 shell 跟踪的方式生成五个独立秘密，并由操作员输入管理员邮箱和已确认的上游主机列表。以下 Bash 子 shell 只使用 `while`、`case`、`read`、`printf` 将值写入模式为 `0600` 的临时文件；秘密不会出现在 `sed` 或其他外部程序的参数/环境中。无论普通失败还是 HUP/INT/TERM，EXIT cleanup 都会尝试删除 `.env.$$.tmp`；清理失败使整体非零。预检成功后才以同一文件系统内的 `mv` 原子替换 `.env`，并立即清空临时路径，避免 cleanup 误删正式文件：
 
 ```bash
-set +x
-umask 077
+(
+  set -eu
+  set +x
+  umask 077
+  ENV_TMP=''
+  cleanup() {
+    status=$?
+    trap - EXIT HUP INT TERM
+    if [ -n "$ENV_TMP" ] && ! rm -f -- "$ENV_TMP"; then
+      status=1
+    fi
+    unset POSTGRES_PASSWORD REDIS_PASSWORD ADMIN_PASSWORD JWT_SECRET TOTP_ENCRYPTION_KEY
+    unset ADMIN_EMAIL SECURITY_URL_ALLOWLIST_UPSTREAM_HOSTS UPSTREAM_HOSTS UPSTREAM_HOST
+    exit "$status"
+  }
+  trap cleanup EXIT
+  trap 'exit 129' HUP
+  trap 'exit 130' INT
+  trap 'exit 143' TERM
 
-BIND_HOST=127.0.0.1
-SECURITY_URL_ALLOWLIST_ENABLED=true
-SECURITY_URL_ALLOWLIST_ALLOW_INSECURE_HTTP=false
-SECURITY_URL_ALLOWLIST_ALLOW_PRIVATE_HOSTS=false
+  BIND_HOST=127.0.0.1
+  SECURITY_URL_ALLOWLIST_ENABLED=true
+  SECURITY_URL_ALLOWLIST_ALLOW_INSECURE_HTTP=false
+  SECURITY_URL_ALLOWLIST_ALLOW_PRIVATE_HOSTS=false
 
 printf '%s' 'Administrator email: ' >&2
 IFS= read -r ADMIN_EMAIL
@@ -268,14 +289,14 @@ fi
 
 if [ "$PREFLIGHT_FAILED" -ne 0 ]; then
   printf '%s\n' "Production .env policy check failed; no values were printed and .env was not replaced." >&2
-  rm -f "$ENV_TMP"
-  unset POSTGRES_PASSWORD REDIS_PASSWORD ADMIN_PASSWORD JWT_SECRET TOTP_ENCRYPTION_KEY
   exit 1
 fi
 
 mv "$ENV_TMP" .env
+ENV_TMP=''
 unset POSTGRES_PASSWORD REDIS_PASSWORD ADMIN_PASSWORD JWT_SECRET TOTP_ENCRYPTION_KEY
 unset ADMIN_EMAIL SECURITY_URL_ALLOWLIST_UPSTREAM_HOSTS UPSTREAM_HOSTS UPSTREAM_HOST
+)
 ```
 
 `源码确认`：目录版 Compose 支持启用 URL allowlist，并以逗号分隔的上游主机列表作为 allowlist。[目录版 Compose](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/deploy/docker-compose.local.yml#L128-L152) `推断`：启用后，列表项只能是精确主机名或 `*.example.com` 形式的主机通配符；上例的两个 `example-upstream.com` 主机只是结构占位符，必须替换为已审核、已验证的真实上游主机。不完整列表会拒绝遗漏的上游请求，这是预期的 fail-closed 行为，应在上线前以最小真实请求逐项补齐和验证。
@@ -316,7 +337,7 @@ unset RENDERED_IMAGES APPROVED_IMAGE
 
 在该代码块中把三个 `<approved-64-hex-digest>` 替换为变更记录中已批准、且前一步实际解析出的值；任一缺失、不匹配或额外运行制品都必须停止启动。`官方资料`：`docker compose config` 会解析 Compose 模型，适合在启动前检查合并结果。[Docker Compose config](https://docs.docker.com/reference/cli/docker/compose/config/)
 
-只有受保护终端中的授权操作员在排障确有必要时，才可以在受限临时文件中审阅全文；不得录屏、上传、粘贴给 Agent 或返回该文件内容。临时文件清理失败即整体失败：
+只有受保护终端中的授权操作员在排障确有必要时，才可以在受限临时文件中审阅全文；不得录屏、上传、粘贴给 Agent 或返回该文件内容。无论普通失败还是 HUP/INT/TERM，EXIT cleanup 都会尝试删除临时文件；清理失败即整体失败：
 
 ```bash
 (
@@ -325,13 +346,16 @@ unset RENDERED_IMAGES APPROVED_IMAGE
   RENDERED_CONFIG=''
   cleanup() {
     status=$?
-    trap - EXIT
+    trap - EXIT HUP INT TERM
     if [ -n "$RENDERED_CONFIG" ] && ! rm -f -- "$RENDERED_CONFIG"; then
       status=1
     fi
     exit "$status"
   }
   trap cleanup EXIT
+  trap 'exit 129' HUP
+  trap 'exit 130' INT
+  trap 'exit 143' TERM
   RENDERED_CONFIG="$(mktemp "${TMPDIR:-/tmp}/sub2api-compose.XXXXXX")"
   chmod 600 "$RENDERED_CONFIG"
   docker compose -f docker-compose.yml -f docker-compose.override.yml config > "$RENDERED_CONFIG"

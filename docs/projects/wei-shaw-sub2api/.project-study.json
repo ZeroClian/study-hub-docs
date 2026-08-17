@@ -7,15 +7,15 @@
     "commit": "e803e3851c0a7e222cfadeafad7b8636ab959d11"
   },
   "learning_goal": "能够理解项目，并按可恢复、可验收的方式完成自建",
-  "generated_at": "2026-08-17T15:15:30Z",
+  "generated_at": "2026-08-17T15:34:04Z",
   "documents": {
     "README.md": "4848cf9e7991333adc2b02a9efbdd79f7a50f0ffb46d0e1f1666f593845a0041",
     "overview.md": "d783bdd33f622bc7238d612dfcaa13e6028e1fe51b9d7616bc3910364810a0b1",
     "architecture.md": "f9bc9defec99a8f0e1f73f610f22e5bd5e6a30cfd91199692480cbb146812449",
-    "deployment.md": "149986833b791d3e353c0034553e0731413171ea3b4fb0d33aef795fedf75439",
+    "deployment.md": "3b883f4ed4e27e002f8b025b86cabb88dca6ecf7af00c498a9a2e67172012501",
     "configuration-security.md": "8d6e80ac6041e22db45c5fb7a632b72e9e7ee114de88b9144c21172e62c7ad6d",
     "first-run-acceptance.md": "84981011fb2cc552c60201b11230d4fac1ee9b8eade55766e84ea3b50168c6eb",
-    "operations.md": "04b07e10990888d17bf0213ccf6d7729a758e33d3bd4b3444f60f14be9254cd0",
+    "operations.md": "db826f843bd76b1c67f6b1201e45a4f6e803be75052bec3e1d4c0ec057b08223",
     "troubleshooting.md": "bf951f36d298c65a87c3babd5f741ce98667066810135c7805e80537396561d1",
     "source-guide.md": "d9a7c2b8a989f32a4e49ed437f868ac89bf4314e52dd85174d835400fabff11f",
     "agent-runbook.md": "f220c4e679ca4d789b0dd2bde5ed49a3c7c89780ce35b9b9a53e089e51ab6ba5"

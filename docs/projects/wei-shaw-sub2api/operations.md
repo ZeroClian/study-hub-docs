@@ -171,24 +171,54 @@ YAML
 清理前只能做只读解析并人工核对变更记录中的独立项目名、目录与卷，确认它们以 `sub2api-restore-drill-` 开头，且不属于生产项目。以下命令不删除任何资源：
 
 ```bash
+set -eu
 DRILL_PROJECT='<recorded-project-name>'
 DRILL_DIR='<recorded-absolute-drill-directory>'
 case "$DRILL_PROJECT" in sub2api-restore-drill-*) ;; *) printf '%s\n' 'Refusing a non-drill project.' >&2; exit 64 ;; esac
 case "$DRILL_DIR" in /*) ;; *) printf '%s\n' 'Use the recorded absolute drill directory.' >&2; exit 64 ;; esac
 test "$(basename "$DRILL_DIR")" = "$DRILL_PROJECT"
 test -f "$DRILL_DIR/compose.restore.yml"
-docker compose -p "$DRILL_PROJECT" -f "$DRILL_DIR/compose.restore.yml" config --volumes
+SERVICES="$(docker compose -p "$DRILL_PROJECT" -f "$DRILL_DIR/compose.restore.yml" config --services)"
+[ "$SERVICES" = 'postgres' ] || { printf '%s\n' 'Restore Compose must contain only postgres.' >&2; exit 64; }
+VOLUMES="$(docker compose -p "$DRILL_PROJECT" -f "$DRILL_DIR/compose.restore.yml" config --volumes)"
+[ "$VOLUMES" = 'restore_pg_data' ] || { printf '%s\n' 'Restore Compose must contain only restore_pg_data.' >&2; exit 64; }
+EXPECTED_VOLUME="${DRILL_PROJECT}_restore_pg_data"
+VOLUME_LABELS="$(docker volume inspect "$EXPECTED_VOLUME" --format '{{ index .Labels "com.docker.compose.project" }} {{ index .Labels "com.docker.compose.volume" }}')"
+[ "$VOLUME_LABELS" = "$DRILL_PROJECT restore_pg_data" ] || { printf '%s\n' 'Restore volume labels do not exactly match the drill project.' >&2; exit 64; }
 docker compose -p "$DRILL_PROJECT" -f "$DRILL_DIR/compose.restore.yml" ps -a
-docker volume ls --filter "label=com.docker.compose.project=$DRILL_PROJECT" --format '{{.Name}} {{.Labels}}'
+printf 'Verified drill volume: %s\n' "$EXPECTED_VOLUME"
 ```
 
-只有恢复负责人确认上述输出仅是该已批准的独立项目，并获得清理批准后，才可针对该项目清理命名卷、容器内 dump 副本和演练 `.env`；任一步失败都保持非零、停止并记录剩余资源：
+只有恢复负责人确认上述输出仅是该已批准的独立项目，并获得清理批准后，才可针对该项目清理命名卷、容器内 dump 副本和演练 `.env`。执行脚本不信任预览结果，会在同一进程中重新校验项目、目录、Compose 模型、精确命名卷与 labels；任一步失败都在任何破坏动作前保持非零：
 
 ```bash
-set -eu
-docker compose -p "$DRILL_PROJECT" -f "$DRILL_DIR/compose.restore.yml" down --volumes --remove-orphans
-rm -- "$DRILL_DIR/.env" "$DRILL_DIR/compose.restore.yml"
-rmdir "$DRILL_DIR"
+(
+  set -eu
+  DRILL_PROJECT='<recorded-project-name>'
+  DRILL_DIR='<recorded-absolute-drill-directory>'
+  printf '%s' 'Approved cleanup reference (approved:<change-record>): ' >&2
+  IFS= read -r CLEANUP_APPROVAL
+  case "$CLEANUP_APPROVAL" in approved:*) ;; *) printf '%s\n' 'Explicit cleanup approval is required.' >&2; exit 64 ;; esac
+  case "$DRILL_PROJECT" in sub2api-restore-drill-*) ;; *) printf '%s\n' 'Refusing a non-drill project.' >&2; exit 64 ;; esac
+  case "$DRILL_DIR" in /*) ;; *) printf '%s\n' 'Use the recorded absolute drill directory.' >&2; exit 64 ;; esac
+  test "$(basename "$DRILL_DIR")" = "$DRILL_PROJECT"
+  test -f "$DRILL_DIR/compose.restore.yml"
+  SERVICES="$(docker compose -p "$DRILL_PROJECT" -f "$DRILL_DIR/compose.restore.yml" config --services)"
+  [ "$SERVICES" = 'postgres' ] || { printf '%s\n' 'Restore Compose must contain only postgres.' >&2; exit 64; }
+  VOLUMES="$(docker compose -p "$DRILL_PROJECT" -f "$DRILL_DIR/compose.restore.yml" config --volumes)"
+  [ "$VOLUMES" = 'restore_pg_data' ] || { printf '%s\n' 'Restore Compose must contain only restore_pg_data.' >&2; exit 64; }
+  EXPECTED_VOLUME="${DRILL_PROJECT}_restore_pg_data"
+  VOLUME_LABELS="$(docker volume inspect "$EXPECTED_VOLUME" --format '{{ index .Labels "com.docker.compose.project" }} {{ index .Labels "com.docker.compose.volume" }}')"
+  [ "$VOLUME_LABELS" = "$DRILL_PROJECT restore_pg_data" ] || { printf '%s\n' 'Restore volume labels do not exactly match the drill project.' >&2; exit 64; }
+
+  docker compose -p "$DRILL_PROJECT" -f "$DRILL_DIR/compose.restore.yml" down --volumes
+  if docker volume inspect "$EXPECTED_VOLUME" >/dev/null 2>&1; then
+    printf '%s\n' 'Expected restore volume still exists after cleanup.' >&2
+    exit 1
+  fi
+  rm -- "$DRILL_DIR/.env" "$DRILL_DIR/compose.restore.yml"
+  rmdir "$DRILL_DIR"
+)
 ```
 
 ## 整机迁移
