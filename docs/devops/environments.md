@@ -145,7 +145,7 @@ docker run -d --restart unless-stopped -p 80:80 --name nginx \
 > 机器规格取决于实例数、配置量和流量；“2C4G60G × 3”不是 Nacos 的通用硬性要求。集群通常至少 3 个节点，生产部署请按官方容量规划压测。
 
 #### Linux安装
-  - 需要有 JDK 环境：[安装 JDK 步骤](/devops/environments.html#jdk)
+  - 需要有 JDK 环境：[安装 JDK 步骤](./environments.md#jdk)
 ```bash
 unzip nacos-server-$version.zip
 # 或：tar -xzf nacos-server-$version.tar.gz

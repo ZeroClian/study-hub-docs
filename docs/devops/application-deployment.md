@@ -51,7 +51,7 @@ sudo mkdir -p /www/html
 
 ##### 3. 安装 nginx
 
-- 安装：[Nginx安装](/devops/environments.html#nginx)
+- 安装：[Nginx安装](./environments.md#nginx)
 
 - 修改配置：`vim /usr/local/nginx/conf/nginx.conf `
 
@@ -101,7 +101,7 @@ sudo mkdir -p /www/html
 
 运行 JAR 包需要 Java 运行时。项目使用 JDK 17 时，可以直接使用带 JRE 的基础镜像，避免自行下载并维护 JDK 压缩包。
 
-[安装docker](/devops/docker.html)
+[安装docker](./docker.md)
 
 - 拉取基础运行时镜像：`docker pull eclipse-temurin:17-jre`
 
@@ -167,7 +167,7 @@ sudo mkdir -p /www/html
 
 ### 前言
 
-在上一篇[Vue+SpringBoot手动部署](/devops/application-deployment.html)文章中，我们完成了前后端分离项目的部署，但随着开发的进行，我们每次更新都手动打包上传部署，那无疑是十分繁琐且固定，那是否可以让这一步骤自动触发执行呢？答案当然是可以的，市面上有许多的持续集成与部署的组件可以使用，如：Jenkins、GitLab CI等等。
+在上一篇[Vue+SpringBoot手动部署](./application-deployment.md)文章中，我们完成了前后端分离项目的部署，但随着开发的进行，我们每次更新都手动打包上传部署，那无疑是十分繁琐且固定，那是否可以让这一步骤自动触发执行呢？答案当然是可以的，市面上有许多的持续集成与部署的组件可以使用，如：Jenkins、GitLab CI等等。
 
 但因为我们是个人前期开发的小项目，可以使用更为简便的 GitHub Action 来实现持续集成，只需要编辑一个配置文件即可。
 

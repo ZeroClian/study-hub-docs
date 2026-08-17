@@ -36,8 +36,14 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Validate documentation sources
+        run: pnpm docs:validate
+
       - name: Build VuePress site
         run: pnpm docs:build
+
+      - name: Validate rendered site
+        run: REQUIRE_RENDERED=true pnpm docs:validate
 
       - name: Setup Pages
         uses: actions/configure-pages@v5

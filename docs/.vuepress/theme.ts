@@ -2,7 +2,7 @@ import { hopeTheme } from "vuepress-theme-hope";
 import sidebar from "./sidebar.js";
 
 export default hopeTheme({
-  hostname: "https://zeroclian.cn/",
+  hostname: "https://zeroclian.github.io",
   logo: "/images/study-hub-logo.webp",
   favicon: "/images/study-hub-logo.webp",
   author: {

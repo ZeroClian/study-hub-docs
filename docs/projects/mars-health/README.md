@@ -81,7 +81,7 @@ flowchart LR
 
 1. [iOS 代码实现详解](./ios-implementation.md)：沿入口、模型、状态、网络和四个页面读懂当前 SwiftUI 客户端。
 2. [真实数据接入与迁移](./real-data-integration.md)：比较 HealthKit 与厂商后端路线，确定推荐落地顺序。
-3. [Java 开发者的 Swift 与 SwiftUI 对照手册](/mobile/swift-swiftui-for-java-developers.html)：遇到 `Optional`、属性包装器、闭包或并发语法时查阅通用概念。
+3. [Java 开发者的 Swift 与 SwiftUI 对照手册](../../mobile/swift-swiftui-for-java-developers.md)：遇到 `Optional`、属性包装器、闭包或并发语法时查阅通用概念。
 
 如果目标只是把 App 跑在 iPhone 上，可以先阅读 iOS 实现文档中的“运行环境与服务地址”。如果目标是开始真实数据开发，应先完整阅读迁移文档中的“统一数据模型”和“分阶段实施”，再选择具体 API。
 
