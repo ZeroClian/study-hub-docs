@@ -104,13 +104,17 @@ ADMIN_PASSWORD=<independent-initial-admin-secret>
 JWT_SECRET=<persistent-independent-jwt-secret>
 TOTP_ENCRYPTION_KEY=<persistent-independent-totp-secret>
 
+SECURITY_URL_ALLOWLIST_ENABLED=true
 SECURITY_URL_ALLOWLIST_ALLOW_INSECURE_HTTP=false
 SECURITY_URL_ALLOWLIST_ALLOW_PRIVATE_HOSTS=false
+SECURITY_URL_ALLOWLIST_UPSTREAM_HOSTS=api.example-upstream.com,models.example-upstream.com
 ```
 
 `源码确认`：目录版 Compose 将这些启动变量显式传给容器。[目录版 Compose](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/deploy/docker-compose.local.yml#L87-L126) `推断`：`JWT_SECRET` 和 `TOTP_ENCRYPTION_KEY` 必须跨重启保持不变，分别关系到会话签名和既有加密内容的可读性；在目标环境轮换前应备份并测试恢复。
 
-`源码确认`：URL allowlist 的默认值允许不安全 HTTP 和私网主机。上例是更保守的入口；若确有私有上游，必须改为明确 allowlist 并验证业务连通性，不能机械关闭后再临时放宽。[目录版 Compose](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/deploy/docker-compose.local.yml#L128-L152)
+`源码确认`：目录版 Compose 支持启用 URL allowlist、拒绝不安全 HTTP/私网主机，并以逗号分隔的上游主机列表作为 allowlist。[目录版 Compose](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/deploy/docker-compose.local.yml#L128-L152) 上例的两个 `example-upstream.com` 主机只是结构占位符，必须替换为已审核、已验证的真实上游主机。`推断`：allowlist 启用时，不完整的主机列表会拒绝遗漏的上游请求；这是一种预期的 fail-closed 行为，应在上线前以最小真实请求逐项补齐和验证。
+
+私有上游是受控例外：只有确有业务需要且网络边界可验证时，才允许私网主机，并使用精确的上游主机列表、私网路由和最小网络权限；不要为解决单个失败请求而关闭 allowlist 或放开所有私网目标。
 
 高级配置的实际透传边界、代理与长期安全基线见[配置与安全](./configuration-security.md)。
 
@@ -121,12 +125,13 @@ SECURITY_URL_ALLOWLIST_ALLOW_PRIVATE_HOSTS=false
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.override.yml config -q
 docker compose -f docker-compose.yml -f docker-compose.override.yml config --images
+install -m 0600 /dev/null rendered-compose.yaml
 docker compose -f docker-compose.yml -f docker-compose.override.yml config > rendered-compose.yaml
 ```
 
 `官方资料`：`docker compose config` 会解析 Compose 模型，适合在启动前检查合并结果。[Docker Compose config](https://docs.docker.com/reference/cli/docker/compose/config/)
 
-`推断`：`rendered-compose.yaml` 可能包含秘密，不应提交、上传或放入公开 CI 日志；检查后应依照本地秘密管理策略处理它。
+`推断`：`rendered-compose.yaml` 会包含解析后的秘密，因此先以 `0600` 创建文件。它不应提交、上传或放入公开 CI 日志；检查后应依照本地秘密管理策略处理它。
 
 ## 启动与首次观察
 
@@ -150,12 +155,32 @@ docker compose -f docker-compose.yml -f docker-compose.override.yml \
 
 ## 配置 HTTPS
 
-选择一个反向代理，不要将两者串联为默认拓扑：
+默认采用 Caddy，不将 Caddy 与 Nginx 串联。`官方资料`：上游提供 [Caddyfile](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/deploy/Caddyfile#L1-L60)，其基线以客户端直连 Caddy 为前提。
 
-- **Caddy**：适合希望使用上游提供的 Caddy 基线并由 Caddy 处理证书的单机入口。`官方资料`：[Caddyfile](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/deploy/Caddyfile#L1-L60) 以客户端直连 Caddy 为前提。
-- **Nginx**：适合已有 Nginx 运维体系、需要显式位置规则或与既有站点整合的服务器。`源码确认`：它必须允许带下划线的请求头，否则 `session_id` 粘性会话头会被忽略。[README_CN.md](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/README_CN.md#L218-L226)
+将 `api.example.com` 替换为已解析到本服务器的真实域名，并写入 `/etc/caddy/Caddyfile`：
 
-两种选择都应反向代理至 `127.0.0.1:8080`、仅公开 HTTPS，并针对 SSE/WebSocket 设置正确的缓冲、压缩和超时规则。CDN、可信客户端 IP、源站防火墙与完整配置示例见[配置与安全](./configuration-security.md)。
+```text
+api.example.com {
+    reverse_proxy 127.0.0.1:8080
+}
+```
+
+验证并加载配置：
+
+```bash
+sudo caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+sudo systemctl reload caddy
+sudo systemctl status --no-pager caddy
+```
+
+`推断`：防火墙或云安全组应只允许公网访问 `80/tcp` 与 `443/tcp`；SSH 仅允许受控管理来源；`8080` 保持 `127.0.0.1` 绑定，不配置公网入站规则。完成 DNS 和证书签发后，分别验证 HTTPS 健康端点与 HTTP 跳转：
+
+```bash
+curl --fail --silent --show-error https://api.example.com/health
+curl --head --silent --show-error http://api.example.com
+```
+
+若服务器已有 Nginx 运维体系，可改用 Nginx 作为唯一入口。`源码确认`：它必须允许带下划线的请求头，否则 `session_id` 粘性会话头会被忽略。[README_CN.md](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/README_CN.md#L218-L226) 无论选用 Caddy 还是 Nginx，都应反向代理至 `127.0.0.1:8080`；SSE/WebSocket、CDN、可信客户端 IP 与源站防火墙的安全要求见[配置与安全](./configuration-security.md)。
 
 `待实践验证`：域名证书签发、浏览器 WebAuthn Origin、长连接稳定性和 CDN 的真实转发行为，需要在授权域名和真实流量下测试。
 
