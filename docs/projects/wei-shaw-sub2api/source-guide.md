@@ -20,7 +20,7 @@ sub2api/
 ├── backend/internal/handler/    # 协议入站、响应和管理面 handler
 ├── backend/internal/service/    # 调度、网关、备份等领域编排
 ├── backend/internal/repository/ # PostgreSQL、Redis 与迁移执行
-├── migrations/                  # 编译进二进制的 SQL 迁移
+├── backend/migrations/          # 编译进二进制的 SQL 迁移
 ├── deploy/                      # Compose、样例环境变量和边缘部署资料
 └── skills/sub2api-admin/        # 管理 API 的 Agent/CLI Skill
 ```
@@ -32,7 +32,8 @@ sub2api/
 | [`backend/internal/config/config.go`](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/backend/internal/config/config.go) | `config.yaml`、环境变量和默认值的加载/校验入口，以及 bootstrap 阶段与完整加载的区别。 | 不能凭默认值判断部署安全；Compose 是否把变量传入容器须另看部署文件。 |
 | [`backend/internal/server/router.go`](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/backend/internal/server/router.go) 与 [`backend/internal/server/routes/`](https://github.com/Wei-Shaw/sub2api/tree/e803e3851c0a7e222cfadeafad7b8636ab959d11/backend/internal/server/routes) | 全局中间件、`/api/v1` 管理面与 `/v1` 网关路由分别从哪里注册。 | 不能只因路由存在就宣称某协议、反向代理、SSE 或上游账号在真实环境可用。 |
 | [`backend/internal/handler/`](https://github.com/Wei-Shaw/sub2api/tree/e803e3851c0a7e222cfadeafad7b8636ab959d11/backend/internal/handler) 与 [`backend/internal/service/`](https://github.com/Wei-Shaw/sub2api/tree/e803e3851c0a7e222cfadeafad7b8636ab959d11/backend/internal/service) | 入站协议适配、鉴权后调度、上游请求、计费和记录的职责边界。 | 不能从单个 handler 推断所有平台、模型或错误码具有相同语义。 |
-| [`backend/internal/repository/`](https://github.com/Wei-Shaw/sub2api/tree/e803e3851c0a7e222cfadeafad7b8636ab959d11/backend/internal/repository) 与 [`migrations/`](https://github.com/Wei-Shaw/sub2api/tree/e803e3851c0a7e222cfadeafad7b8636ab959d11/migrations) | 关系数据、缓存与 schema 变更的落点。 | 不能把“迁移能执行”误作“可以无备份升级或直接降级镜像”。 |
+| [`backend/internal/repository/ent.go`](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/backend/internal/repository/ent.go#L38-L108) | 正常启动或升级时，数据库连接、迁移、bootstrap secrets 和完整配置校验的先后顺序。 | 不能据此推断目标数据库已兼容新迁移，或备份和镜像回滚点已经可用。 |
+| [`backend/internal/repository/`](https://github.com/Wei-Shaw/sub2api/tree/e803e3851c0a7e222cfadeafad7b8636ab959d11/backend/internal/repository) 与 [`backend/migrations/`](https://github.com/Wei-Shaw/sub2api/tree/e803e3851c0a7e222cfadeafad7b8636ab959d11/backend/migrations) | 关系数据、缓存与 schema 变更的落点。 | 不能把“迁移能执行”误作“可以无备份升级或直接降级镜像”。 |
 | [`skills/sub2api-admin/`](https://github.com/Wei-Shaw/sub2api/tree/e803e3851c0a7e222cfadeafad7b8636ab959d11/skills/sub2api-admin) | 已部署实例的账户、分组、代理、兑换码及管理 API 操作顺序。 | 它不是服务器初始化器，不应替代 Compose、秘密管理、反向代理或恢复演练。 |
 
 ## 启动与组装
@@ -91,7 +92,9 @@ sub2api/
 
 ### 迁移
 
-`源码确认`：初始化路径通过 [`initializeDatabase`](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/backend/internal/setup/setup.go#L354-L375) 调用 [`repository.ApplyMigrations`](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/backend/internal/repository/migrations_runner.go#L96-L114)。执行器会取得 PostgreSQL advisory lock、按文件名排序嵌入的 SQL、记录 filename 与 checksum，并拒绝非兼容的已应用迁移 checksum 改动。[`migrations/`](https://github.com/Wei-Shaw/sub2api/tree/e803e3851c0a7e222cfadeafad7b8636ab959d11/migrations) 是变更内容的入口，而不是直接在生产库手工修改 schema 的许可。
+`源码确认`：首次 setup 路径通过 [`initializeDatabase`](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/backend/internal/setup/setup.go#L354-L375) 调用 [`repository.ApplyMigrations`](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/backend/internal/repository/migrations_runner.go#L96-L114)。正常启动和升级则从 [`InitEnt`](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/backend/internal/repository/ent.go#L38-L108) 进入：它建立数据库连接后调用 [`applyMigrationsFS`](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/backend/internal/repository/migrations_runner.go#L134-L261)，再执行 [`ensureBootstrapSecrets` 与 `cfg.Validate`](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/backend/internal/repository/ent.go#L80-L90)。因此，初始化与日常启动都可能触及迁移，但入口、前置配置和失败上下文不同；不要把首次 setup 成功当作后续升级无迁移风险的证据。
+
+执行器会取得 PostgreSQL advisory lock、按文件名排序嵌入的 SQL、记录 filename 与 checksum，并拒绝非兼容的已应用迁移 checksum 改动。[`backend/migrations/`](https://github.com/Wei-Shaw/sub2api/tree/e803e3851c0a7e222cfadeafad7b8636ab959d11/backend/migrations) 是 schema 变更内容的入口，而不是直接在生产库手工修改 schema 的许可。
 
 读它能回答“为什么迁移并发受限、为何已应用 SQL 被改动会阻塞启动、为什么升级需要保留日志和备份”。不能据此推断镜像回退会回退 schema。`官方资料`明确迁移是前向的；升级、回滚与恢复流程应以[运维、备份与升级](./operations.md)为准。
 
@@ -112,7 +115,7 @@ sub2api/
 1. [`main.go`](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/backend/cmd/server/main.go) -> `config.go` -> `setup.go`：先确定进程为何处于当前模式。
 2. `wire.go`/`wire_gen.go` -> `server/router.go`：再识别依赖由谁创建、HTTP 行为由谁装配。
 3. `routes/gateway.go` -> `api_key_auth.go` -> `gateway_handler.go` -> 对应 service：用一个具体 endpoint 走完整请求链路。
-4. `migrations_runner.go` -> `migrations/`：在涉及 schema、升级或启动失败时阅读。
+4. `repository/ent.go` -> `migrations_runner.go` -> `backend/migrations/`：先区分正常启动迁移与首次 setup 迁移，再在涉及 schema、升级或启动失败时阅读。
 5. `backup_service.go` -> `backup_handler.go`：在设计恢复、计划备份或管理面改动时阅读。
 6. `skills/sub2api-admin/`：仅当实例已可访问且需要管理对象时使用。
 
@@ -124,7 +127,7 @@ sub2api/
 | --- | --- | --- | --- |
 | 新增或改动网关 endpoint | `routes/gateway.go` 与对应 handler/service | API Key/分组授权、请求体限制、协议错误与用量记录 | 单元/契约测试，受控上游低成本调用，以及非流式和流式链路验证。 |
 | 修改配置项 | `config.go`、Compose/样例配置、实际消费模块 | 默认值、环境变量覆盖、校验与秘密暴露面 | 新旧配置兼容测试；部署前以不输出秘密的校验命令核对传入方式。 |
-| 新增 schema | 新的 `migrations/*.sql` 与 repository 代码 | 迁移锁、checksum、不向后修改已应用迁移 | 空库与已有库升级测试；升级前备份、恢复演练和回退说明。 |
+| 新增 schema | 新的 `backend/migrations/*.sql` 与 repository 代码 | 迁移锁、checksum、不向后修改已应用迁移 | 空库与已有库升级测试；升级前备份、恢复演练和回退说明。 |
 | 改动备份/恢复 | `backup_service.go`、`backup_handler.go` 及存储适配 | 身份验证、对象存储权限、保留策略和恢复前置条件 | 隔离恢复演练；不得先在生产用唯一副本验证。 |
 | 扩展管理自动化 | `skills/sub2api-admin/` 或明确的 admin route | 最小权限、目标确认、幂等键、写后读取 | 先只读、再小范围写入、最后读回；导出物按秘密处理。 |
 
