@@ -69,8 +69,7 @@ curl --fail --silent --show-error http://127.0.0.1:8080/health
 动作/命令：分别检查 PostgreSQL 就绪和带认证的 Redis PING。Redis 密码只在容器内环境变量中使用，不写入命令行文本或输出。
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.override.yml \
-  exec -T postgres pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+docker compose -f docker-compose.yml -f docker-compose.override.yml exec -T postgres sh -ec 'pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
 docker compose -f docker-compose.yml -f docker-compose.override.yml \
   exec -T redis sh -ec 'REDISCLI_AUTH="$REDIS_PASSWORD" redis-cli ping'
 ```

@@ -41,8 +41,7 @@ curl --fail --silent --show-error http://127.0.0.1:8080/health
 诊断动作：分别测试数据库可用性和 Redis 认证，不在终端中写入密码。
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.override.yml \
-  exec -T postgres pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+docker compose -f docker-compose.yml -f docker-compose.override.yml exec -T postgres sh -ec 'pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
 docker compose -f docker-compose.yml -f docker-compose.override.yml \
   exec -T redis sh -ec 'REDISCLI_AUTH="$REDIS_PASSWORD" redis-cli ping'
 ```
@@ -53,16 +52,36 @@ docker compose -f docker-compose.yml -f docker-compose.override.yml \
 
 ## 登录、2FA 与配置透传
 
-诊断动作：以受控副本核对 `.env`、`docker-compose.yml`、`docker-compose.override.yml` 的变更记录，并查看合并后配置是否包含所需变量。输出可能含秘密，只能在受保护终端处理：
+诊断动作：以受控副本核对 `.env`、`docker-compose.yml`、`docker-compose.override.yml` 的变更记录。以下两步只输出变量名及 `set`/`missing`、`referenced`/`not referenced` 状态，绝不输出 `.env` 值或 Compose 渲染结果：
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.override.yml config -q
-docker compose -f docker-compose.yml -f docker-compose.override.yml config --environment
+for ENV_KEY in JWT_SECRET TOTP_ENCRYPTION_KEY; do
+  if grep -q "^${ENV_KEY}=" .env; then
+    printf '%s: set\n' "$ENV_KEY"
+  else
+    printf '%s: missing\n' "$ENV_KEY"
+  fi
+done
+
+for ENV_KEY in JWT_SECRET TOTP_ENCRYPTION_KEY; do
+  if grep -Eq "(\\$\\{?${ENV_KEY}\\}?|${ENV_KEY}:)" \
+    docker-compose.yml docker-compose.override.yml; then
+    printf '%s: referenced\n' "$ENV_KEY"
+  else
+    printf '%s: not referenced\n' "$ENV_KEY"
+  fi
+done
 ```
 
 `源码确认`：目录版 Compose 没有 `env_file: .env`；只有在 Compose `environment` 中明确引用的值才会进入容器，`JWT_SECRET` 和 `TOTP_ENCRYPTION_KEY` 是已显式传入的持久秘密。[目录版 Compose](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/deploy/docker-compose.local.yml#L44-L180) [秘密配置](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/deploy/docker-compose.local.yml#L87-L126)
 
-修复边界：若变量没有透传，先确认该固定版本是否支持它，再在已审阅的 override 中作最小补充或使用已验证的 `data/config.yaml`。登录或 2FA 在重启后失效时，保留原有数据与密钥，检查秘密连续性和时钟；不得以删除用户或重新初始化替代恢复。
+诊断结论：`missing` 表示值未在 `.env` 定义；`not referenced` 表示 Compose 不会把该变量传给容器；两者均为 `set`/`referenced` 但行为未改变时，变更可能尚未应用到运行中的容器，需要在维护窗口重建受影响服务。修复边界：若变量没有透传，先确认该固定版本是否支持它，再在已审阅的 override 中作最小补充或使用已验证的 `data/config.yaml`。在获批变更后，才重建应用容器并复验：
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.override.yml up -d --force-recreate sub2api
+```
+
+登录或 2FA 在重启后失效时，保留原有数据与密钥，检查秘密连续性和时钟；不得以删除用户或重新初始化替代恢复。
 
 ## API Key 与上游请求
 
