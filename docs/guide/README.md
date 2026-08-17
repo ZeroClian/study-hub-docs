@@ -84,6 +84,7 @@ description: Study Hub 的分类结构、主题索引与推荐阅读路径。
 ## GitHub 项目精读
 
 - [TencentDB Agent Memory：从使用到二次开发](/projects/tencentcloud-tencentdb-agent-memory/)
+- [Sub2API：项目精读与可复现自建指南](/projects/wei-shaw-sub2api/)
 
 ## 通用工具
 
