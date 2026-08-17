@@ -41,11 +41,23 @@ Internet -> 443/TCP -> Caddy or Nginx -> 127.0.0.1:8080 -> Sub2API
 
 不要执行从上游默认分支下载后立即执行的脚本：`官方资料`表明其快捷脚本读取 `main`，文件内容可能随时间改变。[docker-deploy.sh](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/deploy/docker-deploy.sh#L23-L24)
 
-以下下载始终使用固定提交，而不是浮动分支：
+以下步骤只适用于**首次安装**。部署目录已有 `.env`、持久数据或 Compose 文件时，应视为既有部署或升级：停止在此处，先备份并按[运维、备份与升级](./operations.md)处理；绝不重新下载后覆盖 `.env`。
+
+以下命令要求新的或空的部署目录，并始终使用固定提交，而不是浮动分支：
 
 ```bash
-sudo install -d -m 0750 -o "$USER" -g "$USER" /opt/sub2api-deploy
-cd /opt/sub2api-deploy
+DEPLOY_DIR=/opt/sub2api-deploy
+if [ -e "$DEPLOY_DIR/.env" ]; then
+  printf '%s\n' "Refusing to overwrite an existing .env; treat this as an existing deployment." >&2
+  exit 1
+fi
+if [ -d "$DEPLOY_DIR" ] && [ -n "$(find "$DEPLOY_DIR" -mindepth 1 -maxdepth 1 -print -quit)" ]; then
+  printf '%s\n' "Refusing to use a non-empty deployment directory." >&2
+  exit 1
+fi
+
+sudo install -d -m 0750 -o "$USER" -g "$USER" "$DEPLOY_DIR"
+cd "$DEPLOY_DIR"
 
 SUB2API_COMMIT=e803e3851c0a7e222cfadeafad7b8636ab959d11
 curl --fail --location \
@@ -54,10 +66,10 @@ curl --fail --location \
 curl --fail --location \
   "https://raw.githubusercontent.com/Wei-Shaw/sub2api/${SUB2API_COMMIT}/deploy/.env.example" \
   --output .env.example
-cp .env.example .env
+cp --no-clobber .env.example .env
 chmod 600 .env
 mkdir -p data postgres_data redis_data backups
-shasum -a 256 docker-compose.yml .env.example > source-files.sha256
+sha256sum docker-compose.yml .env.example > source-files.sha256
 ```
 
 `推断`：将文件校验值连同固定提交写入变更记录，可发现本地文件的意外替换；这不替代对来源、主机访问和镜像制品的审核。
@@ -112,9 +124,29 @@ SECURITY_URL_ALLOWLIST_UPSTREAM_HOSTS=api.example-upstream.com,models.example-up
 
 `源码确认`：目录版 Compose 将这些启动变量显式传给容器。[目录版 Compose](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/deploy/docker-compose.local.yml#L87-L126) `推断`：`JWT_SECRET` 和 `TOTP_ENCRYPTION_KEY` 必须跨重启保持不变，分别关系到会话签名和既有加密内容的可读性；在目标环境轮换前应备份并测试恢复。
 
-`源码确认`：目录版 Compose 支持启用 URL allowlist、拒绝不安全 HTTP/私网主机，并以逗号分隔的上游主机列表作为 allowlist。[目录版 Compose](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/deploy/docker-compose.local.yml#L128-L152) 上例的两个 `example-upstream.com` 主机只是结构占位符，必须替换为已审核、已验证的真实上游主机。`推断`：allowlist 启用时，不完整的主机列表会拒绝遗漏的上游请求；这是一种预期的 fail-closed 行为，应在上线前以最小真实请求逐项补齐和验证。
+首次安装时，以关闭 shell 跟踪的方式生成五个独立秘密，并在 Linux 上用 GNU `sed -i` 写入 `.env`；命令不会打印秘密。另行用受保护编辑器把 `ADMIN_EMAIL` 改为管理员邮箱：
 
-私有上游是受控例外：只有确有业务需要且网络边界可验证时，才允许私网主机，并使用精确的上游主机列表、私网路由和最小网络权限；不要为解决单个失败请求而关闭 allowlist 或放开所有私网目标。
+```bash
+set +x
+POSTGRES_PASSWORD="$(openssl rand -hex 32)"
+REDIS_PASSWORD="$(openssl rand -hex 32)"
+ADMIN_PASSWORD="$(openssl rand -hex 32)"
+JWT_SECRET="$(openssl rand -hex 32)"
+TOTP_ENCRYPTION_KEY="$(openssl rand -hex 32)"
+
+sed -i \
+  -e "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=${POSTGRES_PASSWORD}|" \
+  -e "s|^REDIS_PASSWORD=.*|REDIS_PASSWORD=${REDIS_PASSWORD}|" \
+  -e "s|^ADMIN_PASSWORD=.*|ADMIN_PASSWORD=${ADMIN_PASSWORD}|" \
+  -e "s|^JWT_SECRET=.*|JWT_SECRET=${JWT_SECRET}|" \
+  -e "s|^TOTP_ENCRYPTION_KEY=.*|TOTP_ENCRYPTION_KEY=${TOTP_ENCRYPTION_KEY}|" \
+  .env
+unset POSTGRES_PASSWORD REDIS_PASSWORD ADMIN_PASSWORD JWT_SECRET TOTP_ENCRYPTION_KEY
+```
+
+`源码确认`：目录版 Compose 支持启用 URL allowlist，并以逗号分隔的上游主机列表作为 allowlist。[目录版 Compose](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/deploy/docker-compose.local.yml#L128-L152) `推断`：启用后，列表项只能是精确主机名或 `*.example.com` 形式的主机通配符；上例的两个 `example-upstream.com` 主机只是结构占位符，必须替换为已审核、已验证的真实上游主机。不完整列表会拒绝遗漏的上游请求，这是预期的 fail-closed 行为，应在上线前以最小真实请求逐项补齐和验证。
+
+allowlist 启用时，上游 URL 必须使用 HTTPS；`SECURITY_URL_ALLOWLIST_ALLOW_INSECURE_HTTP` 仅在 allowlist 关闭时才会影响 HTTP 的处理。私有上游是受控例外：只有确有业务需要且网络边界可验证时，才将 `SECURITY_URL_ALLOWLIST_ALLOW_PRIVATE_HOSTS` 设为 `true`，并使用精确的内部 DNS 主机名、私网路由和最小网络权限；不使用 CIDR 或 IP 地址范围作为列表项，也不要为解决单个失败请求而关闭 allowlist 或放开所有私网目标。
 
 高级配置的实际透传边界、代理与长期安全基线见[配置与安全](./configuration-security.md)。
 
@@ -122,7 +154,37 @@ SECURITY_URL_ALLOWLIST_UPSTREAM_HOSTS=api.example-upstream.com,models.example-up
 
 所有 Compose 命令均显式加载基础文件和覆盖文件，避免遗漏固定镜像或本地覆写：
 
+在渲染或启动前执行以下预检；它只报告失败，不打印 `.env` 中的值：
+
 ```bash
+awk -F= '
+  BEGIN {
+    required["POSTGRES_PASSWORD"] = 1
+    required["REDIS_PASSWORD"] = 1
+    required["ADMIN_PASSWORD"] = 1
+    required["JWT_SECRET"] = 1
+    required["TOTP_ENCRYPTION_KEY"] = 1
+  }
+  /^[[:space:]]*#/ || /^[[:space:]]*$/ { next }
+  {
+    key = $1
+    value = substr($0, index($0, "=") + 1)
+    values[key] = value
+  }
+  END {
+    for (key in required) {
+      value = values[key]
+      if (!(key in values) || value == "" || value == "change_this_secure_password" || value ~ /^<[^>]+>$/) {
+        invalid = 1
+      }
+    }
+    exit invalid
+  }
+' .env || {
+  printf '%s\n' "Required .env values are missing, empty, known defaults, or placeholders." >&2
+  exit 1
+}
+
 docker compose -f docker-compose.yml -f docker-compose.override.yml config -q
 docker compose -f docker-compose.yml -f docker-compose.override.yml config --images
 install -m 0600 /dev/null rendered-compose.yaml
@@ -137,6 +199,8 @@ docker compose -f docker-compose.yml -f docker-compose.override.yml config > ren
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.override.yml pull
+docker image inspect weishaw/sub2api:0.1.176 \
+  --format '{{index .RepoDigests 0}}'
 docker compose -f docker-compose.yml -f docker-compose.override.yml up -d
 docker compose -f docker-compose.yml -f docker-compose.override.yml ps
 docker compose -f docker-compose.yml -f docker-compose.override.yml logs --tail=200 sub2api
@@ -155,7 +219,13 @@ docker compose -f docker-compose.yml -f docker-compose.override.yml \
 
 ## 配置 HTTPS
 
-默认采用 Caddy，不将 Caddy 与 Nginx 串联。`官方资料`：上游提供 [Caddyfile](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/deploy/Caddyfile#L1-L60)，其基线以客户端直连 Caddy 为前提。
+默认采用 Caddy，不将 Caddy 与 Nginx 串联。先按 [Caddy 官方安装文档](https://caddyserver.com/docs/install) 为目标 Linux 发行版安装 Caddy，并选择会提供 `caddy` systemd 服务的官方安装方式；本文不提供未经该发行版验证的安装命令。若安装后没有 `caddy` 服务，先按官方服务文档完成服务安装，再使用下方 systemd 命令。确认二进制可用：
+
+```bash
+caddy version
+```
+
+`官方资料`：上游提供 [Caddyfile](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/deploy/Caddyfile#L1-L60)，其基线以客户端直连 Caddy 为前提。
 
 将 `api.example.com` 替换为已解析到本服务器的真实域名，并写入 `/etc/caddy/Caddyfile`：
 
@@ -165,9 +235,14 @@ api.example.com {
 }
 ```
 
-验证并加载配置：
+首次配置时，先验证并启用/启动 systemd 服务；之后修改配置时只验证后 reload：
 
 ```bash
+sudo caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+sudo systemctl enable --now caddy
+sudo systemctl status --no-pager caddy
+
+# Later Caddyfile changes
 sudo caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
 sudo systemctl reload caddy
 sudo systemctl status --no-pager caddy
@@ -177,7 +252,7 @@ sudo systemctl status --no-pager caddy
 
 ```bash
 curl --fail --silent --show-error https://api.example.com/health
-curl --head --silent --show-error http://api.example.com
+test "$(curl --head --silent --show-error --output /dev/null --write-out '%{http_code}' http://api.example.com)" = 308
 ```
 
 若服务器已有 Nginx 运维体系，可改用 Nginx 作为唯一入口。`源码确认`：它必须允许带下划线的请求头，否则 `session_id` 粘性会话头会被忽略。[README_CN.md](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/README_CN.md#L218-L226) 无论选用 Caddy 还是 Nginx，都应反向代理至 `127.0.0.1:8080`；SSE/WebSocket、CDN、可信客户端 IP 与源站防火墙的安全要求见[配置与安全](./configuration-security.md)。

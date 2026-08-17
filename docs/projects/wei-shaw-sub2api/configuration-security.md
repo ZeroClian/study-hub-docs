@@ -63,7 +63,7 @@ TOTP_ENCRYPTION_KEY=<persistent-independent-totp-secret>
 
 `源码确认`：固定版本的目录版 Compose 将 URL allowlist 默认设置为关闭，同时允许不安全 HTTP 与私网主机。[目录版 Compose](https://github.com/Wei-Shaw/sub2api/blob/e803e3851c0a7e222cfadeafad7b8636ab959d11/deploy/docker-compose.local.yml#L128-L152)
 
-生产应根据实际要调用的上游收紧：启用 allowlist，拒绝非必要的 HTTP 和私网目标，并只列入预期域名或地址范围。私有上游是例外，不是理由：若业务确需访问私网服务，应采用精确 allowlist、私网路由和最小网络权限，并做连通性回归；不要因为测试失败就把所有私网地址重新开放。
+生产应根据实际要调用的上游收紧：启用 allowlist，并只列入精确主机名或 `*.example.com` 形式的主机通配符，不使用 CIDR、IP 地址或地址范围。allowlist 启用时，上游 URL 必须使用 HTTPS；`SECURITY_URL_ALLOWLIST_ALLOW_INSECURE_HTTP` 仅在 allowlist 关闭时生效。私有上游是受控例外：若业务确需访问私网服务，应将 `SECURITY_URL_ALLOWLIST_ALLOW_PRIVATE_HOSTS` 显式设为 `true`，采用精确的内部 DNS 主机名、私网路由和最小网络权限，并做连通性回归；不要因为测试失败就把所有私网地址重新开放。
 
 `待实践验证`：allowlist 的精确语法、默认覆盖关系和每个上游要求均应在固定镜像、授权上游与测试请求中验证。
 
