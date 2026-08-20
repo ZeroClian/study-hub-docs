@@ -1,184 +1,46 @@
 ---
-title: Git 常用命令与连接排错
-description: Git 仓库、分支、SSH 与网络连接常见操作。
+title: Git 常用命令与故障处理
+description: 按日常协作、分支整合、回退恢复、冲突处理和远程异常选择 Git 操作入口。
 ---
 
-# Git 常用命令与连接排错
+# Git 常用命令与故障处理
 
-整理 Git 日常命令以及连接 GitHub 时的常见问题。
+本页是 Git 专题的总览。先确认当前仓库状态，再按问题类型进入分册；不要在工作区、分支和远程状态不清楚时直接执行会改写历史或修改配置的命令。
 
-## 创建仓库
-命令|含义
----|---
-`git init` | 初始化仓库
-`git clone <url>` | 克隆远程仓库
-`git add -p` | 逐块确认并添加文件到暂存区，避免把密钥等无关文件一起提交
-`git commit -m "message"` | 将暂存区内容提交到仓库
+## 使用前先确认状态
 
-## 分支
+下列命令均为只读检查。涉及提交、合并、回退、推送或连接排查前，按当前问题选择必要的检查项。
 
-`git fetch --all --prune`：获取所有远程更新并清理已删除的远程分支
+| 检查目标 | 命令 | 用途 |
+| --- | --- | --- |
+| 工作区、暂存区和跟踪分支 | `git status --short --branch` | 确认是否有未提交改动，以及本地分支是否领先或落后远程。 |
+| 当前分支 | `git branch --show-current` | 避免在错误分支上提交、整合或推送。 |
+| 最近历史 | `git log --oneline --decorate -n 10` | 确认最近提交、分支指针和标签位置。 |
+| 远程地址 | `git remote -v` | 确认读取和推送使用的远程仓库地址。 |
 
-`git pull --rebase origin main`：获取并以 rebase 方式整合远程 main 分支
+## 按场景选择文档
 
-`git push <remote> <branch>`：将指定分支上的提交发送到远程代码库
+| 场景 | 进入分册 | 适合处理的问题 |
+| --- | --- | --- |
+| 初始化仓库、提交、同步、暂存或查看历史 | [Git 日常工作流](git/daily-workflow.md) | 完成常规的个人与团队协作操作。 |
+| 创建分支、合并、变基或迁移少量提交 | [分支整合](git/branch-integration.md) | 选择合并策略，并处理提交在分支间流转。 |
+| 撤销文件改动、找回提交或处理错误提交 | [回退与恢复](git/rollback-recovery.md) | 根据改动是否已提交或已推送选择恢复方式。 |
+| 合并、变基或移植提交时出现冲突 | [冲突解决](git/conflict-resolution.md) | 识别冲突、逐文件解决，并继续或放弃当前操作。 |
+| SSH、HTTPS、认证、代理或网络连接失败 | [远程异常排查](git/remote-troubleshooting.md) | 先定位问题来源，再决定是否调整仓库或环境配置。 |
 
-## 将指定 commit 移植到另一个分支
+## 正常操作与异常处理
 
-`git cherry-pick` 会把指定 commit 的改动应用到当前分支，并创建一个新的 commit。适合将 `master` 上的单个修复或功能提交移植到 `test` 分支。
+正常操作优先使用对应分册中的“操作前检查 -> 执行 -> 结果验证”流程。提交前确认暂存内容；同步前确认工作区没有需要保留的未完成改动；推送前确认目标分支和远程地址。
 
-例如，将 `co3-ui` 的某个 commit 从 `master` 移植到 `test`：
+出现异常时，先停止后续会扩大影响的操作，使用本页的只读检查确认状态，再进入对应分册。提交或暂存错误通常进入[回退与恢复](git/rollback-recovery.md)，分支分歧或提交迁移进入[分支整合](git/branch-integration.md)，冲突进入[冲突解决](git/conflict-resolution.md)，连接失败进入[远程异常排查](git/remote-troubleshooting.md)。
 
-```bash
-cd /path/to/co3-ui
+## 高风险操作边界
 
-# 确认工作区干净，并查看 master 上的提交
-git status
-git log master --oneline
+- 不在未确认影响范围时改写已共享提交历史；涉及强制推送前必须与协作者协调，并优先评估可追加的新提交方案。
+- 不把临时保存当作备份，也不在未检查工作区时开始拉取、切换分支或回退。
+- 不在连接问题未定位前修改全局代理、凭据或远程地址；配置中可能包含敏感信息，不应粘贴到日志或聊天记录。
+- 删除分支、标签或清理未跟踪文件前，先确认这些内容是否仍被其他工作流引用。
 
-# 切换并更新 test 分支
-git switch test
-git pull --ff-only origin test
+## 推荐阅读路径
 
-# 将指定 commit 应用到 test
-git cherry-pick <commit-hash>
-
-# 确认无误后推送
-git push origin test
-```
-
-如果目标 commit 还没有同步到本地，先获取远程分支：
-
-```bash
-git fetch origin master test
-```
-
-### 处理冲突
-
-发生冲突时，手动修改冲突文件，保留正确内容，然后继续 cherry-pick：
-
-```bash
-git status
-git add <已解决的文件>
-git cherry-pick --continue
-git push origin test
-```
-
-如果决定放弃本次操作，恢复到 cherry-pick 之前的状态：
-
-```bash
-git cherry-pick --abort
-```
-
-> 注意：目标 commit 可能依赖 `master` 上的其他提交。应用前先查看 `git show <commit-hash>`；如果依赖较多，优先评估是否应该合并分支，而不是单独 cherry-pick。
-
-
-## 修改上传方式
-1. 查看当前地址
-
-```bash
-git remote -v
-```
-2. 修改
-
-```bash
-git remote set-url origin https://xxx.git
-```
-> 同样可以将https方式设置为ssh方式
-
-## Mac 配置SSH 后 仍需要输入密码解决办法
-
-原因可能是 SSH 私钥未加入 macOS 钥匙串。新建密钥时优先使用 Ed25519：
-
-```bash
-ssh-add --apple-use-keychain ~/.ssh/id_ed25519
-```
-
-并在 `~/.ssh/config` 中为 GitHub 配置 `UseKeychain yes` 和 `AddKeysToAgent yes`。
-## 测试连接
-
-```bash
-ssh -T git@github.com
-```
-
-## GitHub HTTPS 连接超时与代理排查
-
-如果出现 `Failed to connect to github.com port 443`、`Recv failure` 或 `Operation timed out`，先区分是 Git 配置、环境代理、本机网络，还是受限执行环境导致。不要在未确认配置来源前直接清理代理。
-
-### 查询代理信息
-
-先查看远程地址，以及 Git 在各配置层级读取到的代理配置：
-
-```bash
-# 查看远程地址
-git remote -v
-
-# 查看仓库、用户和系统 Git 配置中的代理，并显示来源
-git config --show-origin --show-scope --get-regexp '(^|[.])proxy$'
-
-# 分层查询：没有匹配项时命令会返回非 0，可忽略
-git config --local --get-regexp '(^|[.])proxy$'
-git config --global --get-regexp '(^|[.])proxy$'
-git config --system --get-regexp '(^|[.])proxy$'
-```
-
-再检查 Git 配置之外的代理来源：
-
-```bash
-# HTTP_PROXY、HTTPS_PROXY、ALL_PROXY、NO_PROXY 等环境变量
-env | grep -iE '^(http|https|all|no)_proxy='
-
-# macOS 系统代理
-scutil --proxy
-
-# 检查示例本地代理端口是否在监听，按实际端口替换 10809
-lsof -nP -iTCP:10809 -sTCP:LISTEN
-```
-
-不要把包含代理认证信息的完整输出直接贴到聊天或日志中。还可以检查 Git URL 重写规则，排除远程地址被意外替换：
-
-```bash
-git config --show-origin --show-scope --get-regexp '^url\..*\.insteadOf$'
-```
-
-### 验证连接
-
-使用只读命令复现 Git 的远端访问，不会合并或修改工作区：
-
-```bash
-git ls-remote --heads origin
-git fetch --dry-run --tags origin test
-```
-
-如果 Git 和环境变量都没有代理，但普通终端可以访问 GitHub、受限执行环境却失败，问题通常来自执行环境的网络隔离，不应擅自给项目写入代理配置。
-
-### 仅为当前仓库配置 GitHub 代理
-
-确认本机代理可用后，可以只对当前仓库、且只对 GitHub 配置代理。下面以 HTTP 代理 `127.0.0.1:10809` 为例，端口和协议需替换为实际值：
-
-```bash
-git config --local http.https://github.com.proxy http://127.0.0.1:10809
-git config --local --get http.https://github.com.proxy
-
-# 配置后再次验证，不执行合并
-git fetch --dry-run --tags origin test
-```
-
-验证成功后即可重试：
-
-```bash
-git pull --tags origin test
-```
-
-如果不再需要该配置，删除当前仓库的 GitHub 专用代理：
-
-```bash
-git config --local --unset http.https://github.com.proxy
-```
-
-只有确认全局代理配置错误且不再被其他项目使用时，才清理全局配置：
-
-```bash
-git config --global --unset http.proxy
-git config --global --unset https.proxy
-```
+第一次使用 Git 或完成日常协作，从[Git 日常工作流](git/daily-workflow.md)开始。需要合并、变基或选择提交流转方式时阅读[分支整合](git/branch-integration.md)；发现改动或提交不符合预期时阅读[回退与恢复](git/rollback-recovery.md)；遇到冲突时转到[冲突解决](git/conflict-resolution.md)。只有远程访问、认证或网络异常时，再阅读[远程异常排查](git/remote-troubleshooting.md)。
