@@ -59,7 +59,7 @@ description: 按改动所处层级选择 restore、reset、revert 或 reflog，�
 
 ### 撤销已经推送的提交
 
-**操作前检查：** 使用 `git fetch <remote>` 更新可见的远程状态，再用 `git branch -vv`、`git status --short --branch` 和 `git log --oneline --decorate -n 10` 确认 `<commit>` 已共享且需要撤销。先阅读该提交的差异，确认反向变更不会超出预期。
+**操作前检查：** 使用 `git fetch <remote>` 更新可见的远程跟踪引用，再用 `git branch -r --contains <commit>` 检查已抓取的远程分支是否包含 `<commit>`。`git branch -vv` 和 `git status --short --branch` 只能提供相对本地远程跟踪引用的线索，`git log --oneline --decorate -n 10` 用于核对本地历史位置；这些结果仍不能排除其他远程或协作者已经获取该提交。无法确认未共享时，优先使用 revert 或与团队协商。先阅读该提交的差异，确认反向变更不会超出预期。
 
 **执行：** 使用 `git revert <commit>` 创建一个新的提交来反向应用 `<commit>` 的改动。`revert` 不等同于删除历史：原提交和撤销提交都会保留在历史中。若 `<commit>` 是 merge commit，普通 revert 需要先选择主线父提交；先用 `git show --no-patch --pretty=%P <commit>` 确认父提交及其语义，并与团队协调，再评估使用 `git revert -m <parent-number> <commit>`，不要把主线父提交写死为 1。若 Git 报告冲突，按[冲突解决](conflict-resolution.md)处理文件后使用 `git revert --continue`；不再继续本次撤销时使用 `git revert --abort` 回到开始前状态。
 
