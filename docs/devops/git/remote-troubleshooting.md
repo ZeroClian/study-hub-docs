@@ -20,7 +20,7 @@ description: 排查远程地址、SSH、HTTPS、代理、认证、连接超时�
 3. 检查环境变量与系统代理：先运行 `env | rg -i '^(http_proxy|https_proxy|all_proxy|no_proxy)=' | sed 's/=.*$/=/'`，只显示已设置的变量名；需要查看值时只能在受控终端进行，代理 URL 可能含认证信息，不能复制到工单、聊天记录或日志。macOS 还可运行 `scutil --proxy` 查看系统代理设置。
 4. 检查本地代理端口：若配置指向本地代理，运行 `lsof -nP -iTCP:10809 -sTCP:LISTEN` 确认进程在监听。`10809` 仅是示例，按实际代理协议和端口替换。
 5. 用只读远程操作复现：运行 `git ls-remote --heads origin`，以及 `git fetch --dry-run --tags origin <branch>`。前者读取远端引用，后者演练抓取但不更新本地引用；两者都需要网络和远程访问权限。
-6. 仅在原因确定后修改仓库级配置。需要判断 Git 是否被 URL 重写时，运行 `git config --show-origin --show-scope --get-regexp '(^|[.])insteadOf$'`，检查 `insteadOf` 是否把预期地址改写到其他协议或主机。
+6. 仅在原因确定后修改仓库级配置。需要判断 Git 是否被 URL 重写时，默认运行 `git config --show-origin --show-scope --name-only --get-regexp '(^|[.])insteadOf$'`，只显示键名和来源。若必须查看重写值，只能在受控终端运行不带 `--name-only` 的同一查询；值可能含用户名、Token 或内部地址，不得复制到日志、聊天或工单。
 
 如果同一远程在不同机器都不可用，可在可访问时查看远端服务的官方状态信息；这只能帮助判断服务侧是否异常，不能代替本机配置和权限检查。
 
