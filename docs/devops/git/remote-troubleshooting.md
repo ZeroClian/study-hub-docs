@@ -40,7 +40,7 @@ description: 排查远程地址、SSH、HTTPS、代理、认证、连接超时�
 
 **执行：** 在 macOS 上，确认目标私钥后可运行 `ssh-add --apple-use-keychain ~/.ssh/id_ed25519`，将已有密钥加入 agent 和钥匙串。`~/.ssh/config` 的 GitHub 示例应使用占位路径，不包含真实账号、主机或密钥内容：
 
-```sshconfig
+```text
 Host github.com
   HostName github.com
   User git
