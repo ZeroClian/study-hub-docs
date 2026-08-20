@@ -78,7 +78,7 @@ Host github.com
 
 ```bash
 git config --local http.https://github.com.proxy http://127.0.0.1:10809
-git config --local --get-regexp '^http\\.https://github\\.com\\.proxy$'
+git config --local --get-regexp '^http\.https://github\.com\.proxy$'
 ```
 
 该地址和端口只是示例，必须按实际代理协议和端口替换。确认该仓库级配置错误后，使用 `git config --local --unset-all http.https://github.com.proxy` 删除，再执行只读验证。全局代理清理只适用于已经确认错误配置来源的情况，且应先记录旧值；不要因为一次超时就清理全局配置。
