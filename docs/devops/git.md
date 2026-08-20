@@ -13,10 +13,12 @@ description: 按日常协作、分支整合、回退恢复、冲突处理和远�
 
 | 检查目标 | 命令 | 用途 |
 | --- | --- | --- |
-| 工作区、暂存区和跟踪分支 | `git status --short --branch` | 确认是否有未提交改动，以及本地分支是否领先或落后远程。 |
+| 工作区、暂存区和跟踪分支 | `git status --short --branch` | 确认是否有未提交改动，以及相对已配置 upstream 的本地远程跟踪引用的领先或落后关系。 |
 | 当前分支 | `git branch --show-current` | 避免在错误分支上提交、整合或推送。 |
 | 最近历史 | `git log --oneline --decorate -n 10` | 确认最近提交、分支指针和标签位置。 |
 | 远程地址 | `git remote -v` | 确认读取和推送使用的远程仓库地址。 |
+
+`git status --short --branch` 不会主动访问远程，远程跟踪引用可能已过期。需要确认远端最新状态时，先在[Git 日常工作流](git/daily-workflow.md)中执行需要网络访问、且会更新本地远程跟踪引用的 `git fetch --prune <remote>`，再比较历史或继续后续操作。
 
 ## 按场景选择文档
 

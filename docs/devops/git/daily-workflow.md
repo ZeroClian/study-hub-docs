@@ -49,7 +49,7 @@ description: 从初始化、暂存和提交到同步、推送、临时保存与�
 
 **执行：** 使用 `git fetch --prune <remote>` 获取远程更新并清理已删除的远程跟踪分支；确认差异后，使用 `git pull --ff-only <remote> <branch>` 仅在可快进时拉取。完成本地提交后，使用 `git push <remote> <branch>` 推送当前分支。
 
-**结果验证：** 拉取后用 `git log --oneline --decorate -n 10` 检查历史位置；推送后用 `git status` 确认本地分支与远程跟踪分支的关系。需要确认远端引用时可使用 `git ls-remote --heads <remote>`。
+**结果验证：** 拉取后用 `git log --oneline --decorate -n 10` 检查历史位置。推送后，只有当前分支已正确配置目标 upstream 时，`git status` 才可辅助判断本地分支与远程跟踪分支的关系；否则先用 `git rev-parse HEAD` 获取本地提交 SHA，再用 `git ls-remote --heads <remote> <branch>` 获取目标远程分支的 SHA 并比对。`git ls-remote` 需要远程访问，连接失败时转到[远程异常排查](remote-troubleshooting.md)。
 
 ### 临时保存未完成工作
 
