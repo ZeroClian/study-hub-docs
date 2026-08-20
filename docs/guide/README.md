@@ -71,7 +71,12 @@ description: Study Hub 的分类结构、主题索引与推荐阅读路径。
 - [构建工具：Maven 与 Gradle](../devops/build-tools.md)
 - [CI/CD 工具：GitHub Actions 与 Jenkins](../devops/ci-cd.md)
 - [Vue + Spring Boot 部署与自动化发布](../devops/application-deployment.md)
-- [Git 常用命令与连接排错](../devops/git.md)
+- [Git 常用命令与故障处理](../devops/git.md)
+  - [日常工作流](../devops/git/daily-workflow.md)
+  - [分支与代码整合](../devops/git/branch-integration.md)
+  - [回退与恢复](../devops/git/rollback-recovery.md)
+  - [冲突处理](../devops/git/conflict-resolution.md)
+  - [远程与网络异常](../devops/git/remote-troubleshooting.md)
 - [站点运维：域名与图床](../devops/site-operations.md)
 
 ## AI 与智能体
