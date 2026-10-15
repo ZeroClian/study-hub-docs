@@ -70,6 +70,7 @@ const sidebar: SidebarOptions = [
       page("Maven 与 Gradle", "/devops/build-tools.html"),
       page("GitHub Actions 与 Jenkins", "/devops/ci-cd.html"),
       page("应用部署与自动发布", "/devops/application-deployment.html"),
+      page("macOS 游戏部署工具", "/devops/macos-game-deployment.html"),
       group("Git 版本控制", [
         page("专题总览", "/devops/git.html"),
         page("日常工作流", "/devops/git/daily-workflow.html"),

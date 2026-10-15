@@ -71,6 +71,7 @@ description: Study Hub 的分类结构、主题索引与推荐阅读路径。
 - [构建工具：Maven 与 Gradle](../devops/build-tools.md)
 - [CI/CD 工具：GitHub Actions 与 Jenkins](../devops/ci-cd.md)
 - [Vue + Spring Boot 部署与自动化发布](../devops/application-deployment.md)
+- [macOS 游戏部署工具：rsync 全量与增量同步](../devops/macos-game-deployment.md)
 - [Git 常用命令与故障处理](../devops/git.md)
   - [日常工作流](../devops/git/daily-workflow.md)
   - [分支与代码整合](../devops/git/branch-integration.md)
