@@ -113,6 +113,7 @@ const sidebar: SidebarOptions = [
     ]),
   ]),
   group("通用工具", [
+    page("iTerm2 插件常用命令速查", "/tools/iterm2-plugins.html"),
     page("Markdown 语法速查", "/tools/markdown.html"),
     page("Postman 自动化测试与压测", "/tools/postman-automation-and-performance-testing.html"),
   ]),

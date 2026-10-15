@@ -94,5 +94,6 @@ description: Study Hub 的分类结构、主题索引与推荐阅读路径。
 
 ## 通用工具
 
+- [iTerm2 插件常用命令速查](../tools/iterm2-plugins.md)
 - [Markdown 语法速查](../tools/markdown.md)
 - [Postman 自动化测试与压测实战](../tools/postman-automation-and-performance-testing.md)
